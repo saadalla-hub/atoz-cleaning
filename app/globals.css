@@ -1,0 +1,494 @@
+@import "tailwindcss";
+
+:root {
+  --background: #143640;
+  --foreground: #ffffff;
+
+  --primary: #E7B548;
+  --primary-hover: #D4A63A;
+
+  --secondary: #0F2B34;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  margin: 0;
+  padding: 0;
+
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+
+  overflow-x: hidden;
+}
+
+/* Text Selection */
+::selection {
+  background: var(--primary);
+  color: var(--secondary);
+}
+
+/* Smooth Image Rendering */
+img {
+  max-width: 100%;
+}
+
+/* Better Keyboard Accessibility */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+/* Remove Default Button Styles */
+button {
+  font-family: inherit;
+}
+
+/* Smooth Anchor Scrolling */
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Mobile Touch Improvements */
+button,
+a {
+  touch-action: manipulation;
+}
+/* Mobile Hero Brand Animation */
+
+@keyframes heroLogoReveal {
+  0% {
+    opacity: 0;
+    transform: translateX(25px);
+    filter: blur(8px);
+  }
+
+  45% {
+    opacity: 0;
+    transform: translateX(15px);
+    filter: blur(5px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes heroSubtitleReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  55% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-logo-text {
+  color: #F4C95D;
+  font-size: 3.5rem;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  animation: heroLogoReveal 2.2s ease-out forwards;
+}
+
+.hero-subtitle-text {
+  margin-top: 12px;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  animation: heroSubtitleReveal 2.8s ease-out forwards;
+}
+/* ========================================================= */
+/* A TO Z HERO - PROFESSIONAL ANIMATIONS */
+/* ========================================================= */
+
+/* Desktop Hero Background Reveal */
+
+.hero-desktop-image {
+animation: heroDesktopReveal 1.8s ease-out forwards;
+}
+
+@keyframes heroDesktopReveal {
+from {
+opacity: 0;
+transform: scale(1.08);
+}
+
+to {
+opacity: 1;
+transform: scale(1);
+}
+}
+
+/* Golden Ambient Glow */
+
+.hero-glow {
+animation: heroGlowPulse 8s ease-in-out infinite;
+}
+
+@keyframes heroGlowPulse {
+0%,
+100% {
+opacity: 0.3;
+transform: translateX(-50%) scale(1);
+}
+
+50% {
+opacity: 0.55;
+transform: translateX(-50%) scale(1.15);
+}
+}
+
+/* ========================================================= */
+/* MOBILE HERO VIDEO */
+/* ========================================================= */
+
+.hero-mobile-video {
+animation: heroMobileReveal 2s ease-out forwards;
+}
+
+@keyframes heroMobileReveal {
+from {
+transform: scale(1.06);
+}
+
+to {
+transform: scale(1);
+}
+}
+
+/* Mobile Bottom Gradient Animation */
+
+.hero-mobile-glow {
+animation: heroMobileGlow 5s ease-in-out infinite;
+}
+
+@keyframes heroMobileGlow {
+0%,
+100% {
+opacity: 0.7;
+}
+
+50% {
+opacity: 1;
+}
+}
+
+/* ========================================================= */
+/* MOBILE LOGO */
+/* ========================================================= */
+
+.hero-logo-animation {
+opacity: 0;
+transform: scale(0.75) translateY(25px);
+filter: blur(10px);
+
+animation: heroLogoProfessionalReveal 1.4s ease-out 0.3s forwards;
+}
+
+@keyframes heroLogoProfessionalReveal {
+0% {
+opacity: 0;
+transform: scale(0.75) translateY(25px);
+filter: blur(10px);
+}
+
+60% {
+opacity: 1;
+transform: scale(1.05) translateY(0);
+filter: blur(0);
+}
+
+100% {
+opacity: 1;
+transform: scale(1) translateY(0);
+filter: blur(0);
+}
+}
+
+/* ========================================================= */
+/* DESKTOP HERO CONTENT */
+/* ========================================================= */
+
+.hero-item {
+opacity: 0;
+transform: translateY(30px);
+
+animation: heroContentReveal 0.8s ease-out forwards;
+}
+
+.hero-badge {
+animation-delay: 0.2s;
+}
+
+.hero-title {
+animation-delay: 0.4s;
+}
+
+.hero-description {
+animation-delay: 0.6s;
+}
+
+.hero-buttons {
+animation-delay: 0.8s;
+}
+
+@keyframes heroContentReveal {
+from {
+opacity: 0;
+transform: translateY(30px);
+}
+
+to {
+opacity: 1;
+transform: translateY(0);
+}
+}
+
+/* ========================================================= */
+/* STATUS DOT */
+/* ========================================================= */
+
+.hero-status-dot {
+animation: heroStatusPulse 2s ease-in-out infinite;
+}
+
+@keyframes heroStatusPulse {
+0%,
+100% {
+transform: scale(1);
+opacity: 0.7;
+}
+
+50% {
+transform: scale(1.4);
+opacity: 1;
+}
+}
+
+/* ========================================================= */
+/* TITLE HIGHLIGHT */
+/* ========================================================= */
+
+.hero-title-highlight {
+animation: heroTitleGlow 4s ease-in-out infinite;
+}
+
+@keyframes heroTitleGlow {
+0%,
+100% {
+text-shadow: 0 0 0 rgba(244, 201, 93, 0);
+}
+
+50% {
+text-shadow: 0 0 25px rgba(244, 201, 93, 0.35);
+}
+}
+
+/* ========================================================= */
+/* CTA BUTTONS */
+/* ========================================================= */
+
+.hero-button {
+transition:
+transform 0.3s ease,
+filter 0.3s ease;
+}
+
+.hero-button:hover {
+transform: translateY(-4px) scale(1.03);
+filter: brightness(1.08);
+}
+
+.hero-button:active {
+transform: translateY(-1px) scale(0.98);
+}
+
+/* ========================================================= */
+/* SCROLL INDICATOR */
+/* ========================================================= */
+
+.hero-scroll {
+opacity: 0;
+
+animation:
+heroScrollReveal 0.8s ease-out 1.5s forwards,
+heroScrollFloat 2s ease-in-out 2.3s infinite;
+}
+
+@keyframes heroScrollReveal {
+from {
+opacity: 0;
+}
+
+to {
+opacity: 1;
+}
+}
+
+@keyframes heroScrollFloat {
+0%,
+100% {
+transform: translateX(-50%) translateY(0);
+}
+
+50% {
+transform: translateX(-50%) translateY(7px);
+}
+}
+
+/* ========================================================= */
+/* DECORATIVE PARTICLES */
+/* ========================================================= */
+
+.hero-particle {
+position: absolute;
+display: block;
+border-radius: 9999px;
+}
+
+/* Particle One */
+
+.particle-one {
+top: 25%;
+left: 10%;
+
+width: 8px;
+height: 8px;
+
+background: rgba(231, 181, 72, 0.5);
+
+animation: heroParticleOne 4s ease-in-out infinite;
+}
+
+@keyframes heroParticleOne {
+0%,
+100% {
+transform: translateY(-10px);
+opacity: 0.3;
+}
+
+50% {
+transform: translateY(10px);
+opacity: 0.8;
+}
+}
+
+/* Particle Two */
+
+.particle-two {
+top: 35%;
+right: 12%;
+
+width: 6px;
+height: 6px;
+
+background: rgba(255, 255, 255, 0.4);
+
+animation: heroParticleTwo 5s ease-in-out infinite;
+}
+
+@keyframes heroParticleTwo {
+0%,
+100% {
+transform: translateY(10px);
+opacity: 0.2;
+}
+
+50% {
+transform: translateY(-10px);
+opacity: 0.7;
+}
+}
+
+/* Particle Three */
+
+.particle-three {
+bottom: 25%;
+left: 18%;
+
+width: 6px;
+height: 6px;
+
+background: rgba(255, 255, 255, 0.3);
+
+animation: heroParticleThree 6s ease-in-out infinite;
+}
+
+@keyframes heroParticleThree {
+0%,
+100% {
+transform: translate(-5px, -8px);
+}
+
+50% {
+transform: translate(5px, 8px);
+}
+}
+
+/* ========================================================= */
+/* ACCESSIBILITY */
+/* ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+*,
+*::before,
+*::after {
+animation-duration: 0.01ms !important;
+animation-iteration-count: 1 !important;
+transition-duration: 0.01ms !important;
+}
+}
+/* ========================================= */
+/* HERO LOGO CINEMATIC REVEAL */
+/* ========================================= */
+
+.hero-logo-animation {
+  opacity: 0;
+  transform: translateX(35px) scale(0.96);
+  filter: blur(8px);
+  animation: heroLogoCinematic 1.4s cubic-bezier(0.22, 1, 0.36, 1) 0.25s forwards;
+}
+
+@keyframes heroLogoCinematic {
+  0% {
+    opacity: 0;
+    transform: translateX(35px) scale(0.96);
+    filter: blur(8px);
+  }
+
+  45% {
+    opacity: 0.6;
+    transform: translateX(12px) scale(0.99);
+    filter: blur(3px);
+  }
+
+  75% {
+    opacity: 0.9;
+    transform: translateX(-3px) scale(1.01);
+    filter: blur(0);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0);
+  }
+}
