@@ -9,6 +9,13 @@ const WHATSAPP_NUMBER = "201214290075";
 
 export default function Hero() {
 const { t, language } = useLanguage();
+console.log("LANGUAGE:", language);
+console.log("TRANSLATION:", t);
+console.log("HERO:", t?.hero);
+
+console.log("LANGUAGE:", language);
+console.log("TRANSLATION:", t);
+console.log("HERO:", t?.hero);
 
 return ( <section
    id="home"
@@ -22,10 +29,11 @@ return ( <section
   <div className="absolute inset-0 hidden sm:block">
     <div className="hero-desktop-image absolute inset-0">
       <Image
-        src="/images/hero/hero-cleaning.jpg"
-        alt="Professional A to Z Cleaning Services"
-        fill
-        priority
+  src="/images/hero/hero-cleaning.jpg"
+  alt="Professional A to Z Cleaning Services"
+  fill
+  priority
+  sizes="100vw"
         className="object-cover"
       />
     </div>
