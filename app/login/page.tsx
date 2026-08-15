@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -69,8 +69,8 @@ if (error) {
   return;
 }
 
-router.push('/dashboard');
-
+      const nextPath = new URLSearchParams(window.location.search).get('next');
+      router.push(nextPath || '/dashboard');
 
 }
 
@@ -93,7 +93,7 @@ if (error) {
 }
 
 setMessage(
-  'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.'
+  'ØªÙ… Ø¥Ø±Ø³Ø§Ù„ Ø±Ø§Ø¨Ø· Ø¥Ø¹Ø§Ø¯Ø© ØªØ¹ÙŠÙŠÙ† ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø¥Ù„Ù‰ Ø¨Ø±ÙŠØ¯Ùƒ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ.'
 );
 
 setLoading(false);
@@ -108,14 +108,14 @@ setErrorMessage('');
 
 if (newPassword.length < 6) {
   setErrorMessage(
-    'يجب أن تكون كلمة المرور 6 أحرف على الأقل.'
+    'ÙŠØ¬Ø¨ Ø£Ù† ØªÙƒÙˆÙ† ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± 6 Ø£Ø­Ø±Ù Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„.'
   );
   return;
 }
 
 if (newPassword !== confirmPassword) {
   setErrorMessage(
-    'كلمتا المرور غير متطابقتين.'
+    'ÙƒÙ„Ù…ØªØ§ Ø§Ù„Ù…Ø±ÙˆØ± ØºÙŠØ± Ù…ØªØ·Ø§Ø¨Ù‚ØªÙŠÙ†.'
   );
   return;
 }
@@ -132,7 +132,7 @@ if (error) {
   return;
 }
 
-setMessage('تم تغيير كلمة المرور بنجاح.');
+setMessage('ØªÙ… ØªØºÙŠÙŠØ± ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø¨Ù†Ø¬Ø§Ø­.');
 
 setNewPassword('');
 setConfirmPassword('');
@@ -354,3 +354,4 @@ Welcome Back </h1>
 
 );
 }
+

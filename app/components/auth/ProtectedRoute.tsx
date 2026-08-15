@@ -28,7 +28,7 @@ export default function ProtectedRoute({
 
       // User is not logged in
       if (!user) {
-        router.replace('/login');
+        router.replace('/login?next=/admin');
         return;
       }
 
