@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -137,8 +137,10 @@ const [bookings, setBookings] =
       // Check Admin Permission
       // --------------------------------------
 
-      const {
-        data: isAdmin,
+      console.log('ADMIN DEBUG USER:', user?.id, user?.email);
+
+        const {
+          data: isAdmin,
         error: adminError,
       } = await supabase.rpc(
         'is_admin'
@@ -2043,17 +2045,17 @@ setLoading(false);
                     {reward.status ===
                       'approved' &&
 
-                      '✓ '}
+                      'âœ“ '}
 
                     {reward.status ===
                       'rejected' &&
 
-                      '✕ '}
+                      'âœ• '}
 
                     {reward.status ===
                       'pending' &&
 
-                      '● '}
+                      'â— '}
 
                     {reward.status}
 

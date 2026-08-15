@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -41,22 +41,17 @@ export default function ProtectedRoute({
 
         return;
       }
-
       // Admin protection
-      const { data: profile, error } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single();
+      const { data: isAdmin, error: adminError } =
+        await supabase.rpc('is_admin');
 
-      if (error || !profile) {
-        console.error('Failed to load user role:', error);
+      if (adminError) {
+        console.error('Admin check error:', adminError);
         router.replace('/dashboard');
         return;
       }
 
-      // User is not admin
-      if (profile.role !== 'admin') {
+      if (!isAdmin) {
         router.replace('/dashboard');
         return;
       }
