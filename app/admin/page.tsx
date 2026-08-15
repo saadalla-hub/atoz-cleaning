@@ -10,6 +10,7 @@ import {
   FaGift,
   FaLink,
   FaSync,
+  FaSignOutAlt,
   FaTimes,
   FaUsers,
   FaUserShield,
@@ -74,6 +75,11 @@ type Booking = {
 export default function AdminPage() {
 
   const router = useRouter();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
 
   const [users, setUsers] =
     useState<User[]>([]);
@@ -826,6 +832,15 @@ setLoading(false);
 
     </div>
 
+
+      {/* Logout Button */}
+      <button
+        onClick={handleLogout}
+        className="flex items-center justify-center gap-3 bg-white text-[#143640] font-bold px-6 py-3.5 rounded-xl shadow-lg hover:bg-gray-100 transition-all duration-200 mb-3"
+      >
+        <FaSignOutAlt />
+        Logout
+      </button>
 
     {/* Refresh Button */}
 
@@ -2251,3 +2266,7 @@ function StatCard({
   );
 
 }
+
+
+
+
