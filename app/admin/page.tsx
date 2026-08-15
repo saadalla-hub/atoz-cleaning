@@ -711,7 +711,7 @@ setLoading(false);
 
     return (
 
-      <main className="min-h-screen flex items-center justify-center bg-[#143640]">
+      <main className="min-h-screen flex items-center justify-center bg-[#143640]" dir="ltr">
 
         <div className="text-center text-white">
 
@@ -742,7 +742,7 @@ setLoading(false);
 
     return (
 
-      <main className="min-h-screen flex items-center justify-center bg-[#143640] p-5">
+      <main className="min-h-screen flex items-center justify-center bg-[#143640] p-5" dir="ltr">
 
         <div className="bg-white rounded-xl p-8 max-w-md text-center">
 
@@ -784,7 +784,7 @@ setLoading(false);
 
   return (
 
-    <main className="min-h-screen bg-gray-100 p-4 md:p-8 text-gray-900">
+    <main className="min-h-screen bg-gray-100 p-4 md:p-8 text-gray-900" dir="ltr">
 
 
       {/* HEADER */}
@@ -2060,19 +2060,18 @@ setLoading(false);
                     {reward.status ===
                       'approved' &&
 
-                      'âœ“ '}
+                      'Approved '}
 
                     {reward.status ===
                       'rejected' &&
 
-                      'âœ• '}
+                      'Rejected '}
 
                     {reward.status ===
                       'pending' &&
 
-                      'â— '}
+                      'Pending '}
 
-                    {reward.status}
 
                   </span>
 
@@ -2266,6 +2265,8 @@ function StatCard({
   );
 
 }
+
+
 
 
 
