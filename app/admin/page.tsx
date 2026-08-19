@@ -558,7 +558,14 @@ async function updateBookingStatus(
     if (status === 'confirmed') {
 
       const currentBooking = data?.[0];
-
+console.log(
+  'CONFIRM CHECK:',
+  id,
+  'status:',
+  status,
+  'confirmation_email_sent:',
+  currentBooking?.confirmation_email_sent
+);
       if (currentBooking?.confirmation_email_sent) {
         alert(
           'Confirmation email was already sent.'
