@@ -557,22 +557,28 @@ async function updateBookingStatus(
 
     if (status === 'confirmed') {
 
-      const currentBooking = data?.[0];
-console.log(
-  'CONFIRM CHECK:',
-  id,
-  'status:',
-  status,
-  'confirmation_email_sent:',
-  currentBooking?.confirmation_email_sent
-);
-      if (currentBooking?.confirmation_email_sent) {
-        alert(
-          'Confirmation email was already sent.'
-        );
+      const { data: emailClaimed, error: claimError } = await supabase.rpc('claim_booking_confirmation_email', { p_booking_id: id });
 
-        return;
-      }
+      if (claimError) {
+  console.error(
+    'Confirmation email claim error:',
+    claimError
+  );
+
+  alert(
+    'Could not verify confirmation email status.'
+  );
+
+  return;
+}
+
+if (emailClaimed !== true) {
+  alert(
+    'Confirmation email was already sent.'
+  );
+
+  return;
+}
 
       const customer = users.find(
         (user) => user.id === booking.user_id
@@ -2594,3 +2600,6 @@ function StatCard({
   );
 
 }
+
+
+
