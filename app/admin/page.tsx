@@ -557,7 +557,20 @@ async function updateBookingStatus(
 
     if (status === 'confirmed') {
 
-      const { data: emailClaimed, error: claimError } = await supabase.rpc('claim_booking_confirmation_email', { p_booking_id: id });
+      const { data: emailClaimed, error: claimError } =
+  await supabase.rpc(
+    'claim_booking_confirmation_email',
+    { p_booking_id: id }
+  );
+
+console.log(
+  'EMAIL CLAIM RESULT:',
+  {
+    id,
+    emailClaimed,
+    claimError,
+  }
+);
 
       if (claimError) {
   console.error(
@@ -2600,6 +2613,7 @@ function StatCard({
   );
 
 }
+
 
 
 
