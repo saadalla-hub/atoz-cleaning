@@ -387,7 +387,80 @@ const filteredRewardRequests =
 
     }
   );
-  const totalPoints =
+  const almostThereUsers = new Set(
+  referrals
+    .map((referral) => referral.referrer_id)
+    .filter((referrerId) => {
+
+      const referredUserIds = referrals
+        .filter(
+          (referral) =>
+            referral.referrer_id === referrerId
+        )
+        .map(
+          (referral) =>
+            referral.referred_user_id
+        );
+
+      const completedBookings = bookings.filter(
+        (booking) =>
+          referredUserIds.includes(
+            booking.user_id
+          ) &&
+          booking.status === 'completed'
+      ).length;
+
+      const remainder =
+        completedBookings % 3;
+
+      return (
+        remainder === 1 ||
+        remainder === 2
+      );
+    })
+);
+const totalReferralRewards =
+  Array.from(
+    new Set(
+      referrals.map(
+        (referral) => referral.referrer_id
+      )
+    )
+  ).reduce(
+    (totalRewards, referrerId) => {
+
+      const referredUserIds =
+        referrals
+          .filter(
+            (referral) =>
+              referral.referrer_id ===
+              referrerId
+          )
+          .map(
+            (referral) =>
+              referral.referred_user_id
+          );
+
+      const completedBookings =
+        bookings.filter(
+          (booking) =>
+            referredUserIds.includes(
+              booking.user_id
+            ) &&
+            booking.status ===
+              'completed'
+        ).length;
+
+      return (
+        totalRewards +
+        Math.floor(
+          completedBookings / 3
+        )
+      );
+    },
+    0
+  );
+const totalPoints =
     users.reduce(
       (
         total,
@@ -752,7 +825,7 @@ setLoading(false);
 
           </h1>
 
-          <p className="text-gray-600 mb-5">
+          <p className="text-gray-600 mb-2">
 
             {errorMessage}
 
@@ -762,7 +835,7 @@ setLoading(false);
             onClick={
               loadData
             }
-            className="bg-[#E7B548] text-[#143640] font-bold px-5 py-3 rounded-lg"
+            className="bg-[#E7B548] text-[#143640] font-bold px-5 py-2 rounded-lg"
           >
 
             Try Again
@@ -804,7 +877,7 @@ setLoading(false);
 
     <div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
 
         <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-[#E7B548]/15 border border-[#E7B548]/30">
 
@@ -820,7 +893,7 @@ setLoading(false);
 
           </h1>
 
-          <p className="text-white/60 text-sm md:text-base mt-1">
+          <p className="text-white/60 text-xs md:text-base mt-1">
 
             Manage users, referrals, and rewards
 
@@ -836,7 +909,7 @@ setLoading(false);
       {/* Logout Button */}
       <button
         onClick={handleLogout}
-        className="flex items-center justify-center gap-3 bg-white text-[#143640] font-bold px-6 py-3.5 rounded-xl shadow-lg hover:bg-gray-100 transition-all duration-200 mb-3"
+        className="flex items-center justify-center gap-3 bg-white text-[#143640] font-bold px-6 py-2.5 rounded-xl shadow-lg hover:bg-gray-100 transition-all duration-200 mb-3"
       >
         <FaSignOutAlt />
         Logout
@@ -847,7 +920,7 @@ setLoading(false);
     <button
       onClick={loadData}
       disabled={loading}
-      className="group flex items-center justify-center gap-3 bg-[#E7B548] text-[#143640] font-bold px-6 py-3.5 rounded-xl shadow-lg shadow-black/10 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+      className="group flex items-center justify-center gap-3 bg-[#E7B548] text-[#143640] font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-black/10 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
     >
 
       <FaSync
@@ -869,7 +942,7 @@ setLoading(false);
 </div>
       {/* STATISTICS */}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-5">
 
 
         <StatCard
@@ -919,543 +992,370 @@ setLoading(false);
       </div>
 
 
-      {/* USERS */}
+      {/* REFERRALS */}
 
-<section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-10">
+      <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-10">
 
-  {/* Section Header */}
+        {/* Section Header */}
 
-  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-6 border-b border-gray-100">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-3 bg-[#143640] border-b border-[#E7B548]/20">
 
-    <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
 
-      <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-[#143640]/5">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#143640]/5">
+              <FaLink className="text-[#E7B548] text-base" />
+            </div>
 
-        <FaUsers className="text-[#143640] text-xl" />
+            <div>
+              <h2 className="text-base md:text-2xl font-bold text-[#E7B548]">
+                Referral History
+              </h2>
 
-      </div>
+              <p className="text-xs text-white/70 mt-0.5">
+                Track referral relationships between users
+              </p>
+            </div>
 
-      <div>
+          </div>
 
-        <h2 className="text-xl md:text-2xl font-bold text-[#143640]">
+          <div className="flex items-center gap-3">
 
-          Users
+  <div className="flex items-center gap-2 bg-white text-[#143640] border border-white/40 px-4 py-2.5 rounded-lg text-sm font-semibold shadow-sm">
 
-        </h2>
+    <span className="text-green-600 text-lg font-extrabold">
+  {
+    totalReferralRewards
+  }
+</span>
 
-        <p className="text-sm text-gray-500 mt-1">
-
-          Manage and monitor registered users
-
-        </p>
-
-      </div>
-
-    </div>
-
-
-    <div className="bg-[#143640]/5 text-[#143640] px-4 py-2 rounded-lg text-sm font-semibold">
-
-      {users.length} Total Users
-
-    </div>
+    <span>
+      Rewards Given
+    </span>
 
   </div>
 
 
-  {/* Table */}
+  <div className="flex items-center gap-2 bg-white text-[#143640] border border-white/40 px-4 py-2.5 rounded-lg text-sm font-semibold shadow-sm">
 
-  <div className="overflow-x-auto">
+    <span className="text-yellow-500 text-lg font-extrabold">
+      {
+        almostThereUsers.size
+      }
+    </span>
 
-    <table className="w-full min-w-[900px]">
+    <span>
+      Almost There
+    </span>
 
-      <thead>
+  </div>
 
-        <tr className="bg-gray-50 border-b border-gray-100">
+</div>
 
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
-
-            User
-
-          </th>
-
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
-
-            Referral Code
-
-          </th>
-
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
-
-            Points
-
-          </th>
-
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
-
-            Referrals
-
-          </th>
-
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
-
-            Created
-
-          </th>
-
-        </tr>
-
-      </thead>
+        </div>
 
 
-      <tbody className="divide-y divide-gray-100">
+        {/* Referral Cards */}
 
-        {users.map(
+        <div className="p-6 space-y-5">
 
-          (
+          {Array.from(
+            new Map(
+              referrals.map((referral) => [
+                referral.referrer_id,
+                referrals.filter(
+                  (item) =>
+                    item.referrer_id === referral.referrer_id
+                )
+              ])
+            ).values()
+          ).map((referrerReferrals) => {
 
-            user
+            const referrerId =
+              referrerReferrals[0]?.referrer_id;
 
-          ) => (
+            const referrer =
+              users.find(
+                (user) =>
+                  user.id === referrerId
+              );
 
-            <tr
+            const referredUsers =
+              referrerReferrals
+                .map((referral) =>
+                  users.find(
+                    (user) =>
+                      user.id ===
+                      referral.referred_user_id
+                  )
+                )
+                .filter(Boolean);
 
-              key={
+            const completedBookings =
+              bookings.filter(
+                (booking) =>
+                  referredUsers.some(
+                    (user) =>
+                      user?.id === booking.user_id
+                  ) &&
+                  booking.status === 'completed'
+              ).length;
 
-                user.id
+            const points = Math.floor(completedBookings / 3);
 
-              }
+            return (
+              <div
+                key={referrerId}
+                className="rounded-2xl bg-[#143640] shadow-sm overflow-hidden"
+              >
 
-              className="group hover:bg-gray-50/80 transition-colors duration-200"
+                <div className="p-2">
 
-            >
+                  <div className="flex flex-col lg:flex-row lg:items-start gap-2">
 
-              {/* User */}
+                    {/* Referrer */}
 
-              <td className="px-6 py-5">
+                    <div className="flex items-center gap-2 lg:w-[190px] shrink-0">
 
-                <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-9 h-9 rounded-full bg-[#E7B548] text-[#143640] font-bold text-xs">
+                        {(
+                          referrer?.full_name ||
+                          referrer?.email ||
+                          'U'
+                        )
+                          .charAt(0)
+                          .toUpperCase()}
+                      </div>
 
-                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#143640] text-[#E7B548] font-bold">
+                      <div className="min-w-0">
 
-                    {(
+                        <p className="font-bold text-white truncate">
+                          {referrer?.full_name ||
+                            'Unknown User'}
+                        </p>
 
-                      user.full_name ||
+                        <p className="text-xs text-white/60 truncate">
+                          {referrer?.email || '-'}
+                        </p>
 
-                      user.email ||
+                        <p className="text-[10px] font-mono text-[#E7B548] mt-0.5">
+                          {referrer?.referral_code || '-'}
+                        </p>
 
-                      'U'
+                      </div>
 
-                    )
+                    </div>
 
-                      .charAt(0)
 
-                      .toUpperCase()}
+                    {/* Referred Users */}
+
+                    <div className="flex-1 min-w-0 lg:max-w-[680px]">
+
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-white/50 mb-2">
+                        Referred Users
+                      </p>
+
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+
+                        {referredUsers.map(
+                          (user) => {
+
+                            const userBookings =
+                              bookings.filter(
+                                (booking) =>
+                                  booking.user_id === user?.id
+                              );
+
+                            const hasPending =
+                              userBookings.some(
+                                (booking) =>
+                                  booking.status === 'pending'
+                              );
+
+                            const hasConfirmed =
+                              userBookings.some(
+                                (booking) =>
+                                  booking.status === 'confirmed'
+                              );
+
+                            const hasCompleted =
+                              userBookings.some(
+                                (booking) =>
+                                  booking.status === 'completed'
+                              );
+
+                            const hasCancelled =
+                              userBookings.length > 0 &&
+                              userBookings.every(
+                                (booking) =>
+                                  booking.status === 'cancelled'
+                              );
+
+                            let userStatus =
+                              'No Booking';
+
+                            let statusClass =
+                              'bg-white/10 text-white/70 border-white/10';
+
+                            if (hasPending) {
+                              userStatus = 'Pending';
+                              statusClass =
+                                'bg-yellow-400/15 text-yellow-300 border-yellow-400/20';
+                            } else if (hasConfirmed) {
+                              userStatus = 'Confirmed';
+                              statusClass =
+                                'bg-blue-400/15 text-blue-200 border-blue-400/20';
+                            } else if (hasCompleted) {
+                              userStatus = 'Completed';
+                              statusClass =
+                                'bg-green-400/15 text-green-300 border-green-400/20';
+                            } else if (hasCancelled) {
+                              userStatus = 'Cancelled';
+                              statusClass =
+                                'bg-red-400/15 text-red-300 border-red-400/20';
+                            }
+
+                            return (
+                              <div
+                                key={user?.id}
+                                className="min-w-[130px] rounded-lg bg-white/10 border border-white/10 px-2 py-1.5"
+                              >
+
+                                <div className="flex items-center gap-2">
+
+                                  <div className="flex items-center justify-center w-7 h-7 rounded-full bg-[#E7B548] text-[#143640] font-bold text-xs shrink-0">
+                                    {(
+                                      user?.full_name ||
+                                      user?.email ||
+                                      'U'
+                                    )
+                                      .charAt(0)
+                                      .toUpperCase()}
+                                  </div>
+
+                                  <div className="min-w-0">
+
+                                    <p className="font-semibold text-white text-xs truncate">
+                                      {user?.full_name ||
+                                        'Unknown User'}
+                                    </p>
+
+                                    <p className="text-[10px] text-white/50 truncate">
+                                      {user?.email || '-'}
+                                    </p>
+
+                                  </div>
+
+                                </div>
+
+
+                                {/* User Status */}
+
+                                <div className="mt-1.5">
+
+                                  <span
+                                    className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${statusClass}`}
+                                  >
+                                    {userStatus}
+                                  </span>
+
+                                </div>
+
+                              </div>
+                            );
+                          }
+                        )}
+
+                      </div>
+
+                    </div>
 
                   </div>
 
-                  <div>
 
-                    <p className="font-bold text-gray-900">
+                  {/* Stats */}
 
-                      {user.full_name ||
+                  <div className="grid grid-cols-3 gap-1.5 mt-1 pt-2 border-t border-white/10">
 
-                        'Unnamed User'}
+                    <div className="rounded-lg bg-white/10 px-2 py-1 text-center">
 
-                    </p>
+                      <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wide">
+                        Referrals
+                      </p>
 
-                    <p className="text-sm text-gray-500">
+                      <p className="text-lg font-bold text-white mt-0.5">
+                        {referrerReferrals.length}
+                      </p>
 
-                      {user.email ||
+                    </div>
 
-                        '-'}
 
-                    </p>
+                    <div className="rounded-lg bg-green-400/10 border border-green-400/10 px-2 py-1 text-center">
+
+                      <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wide">
+                        Completed
+                      </p>
+
+                      <p className="text-lg font-bold text-green-300 mt-0.5">
+                        {completedBookings}
+                      </p>
+
+                    </div>
+
+
+                    <div className="rounded-lg bg-[#E7B548]/10 border border-[#E7B548]/10 px-2 py-1 text-center">
+
+                      <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wide">
+                        Points
+                      </p>
+
+                      <p className="text-lg font-bold text-[#E7B548] mt-0.5">
+                        {points}
+                      </p>
+
+                    </div>
 
                   </div>
 
                 </div>
 
-              </td>
-
-
-              {/* Referral Code */}
-
-              <td className="px-6 py-5">
-
-                <span className="inline-flex items-center bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-lg font-mono text-sm text-[#143640]">
-
-                  {user.referral_code ||
-
-                    '-'}
-
-                </span>
-
-              </td>
-
-
-              {/* Points */}
-
-              <td className="px-6 py-5">
-
-                <span className="inline-flex items-center gap-2 font-bold text-[#143640]">
-
-                  <FaCoins className="text-[#E7B548]" />
-
-                  {user.green_points ??
-
-                    0}
-
-                </span>
-
-              </td>
-
-
-              {/* Referrals */}
-
-              <td className="px-6 py-5">
-
-                <span className="inline-flex items-center justify-center min-w-[40px] px-3 py-1.5 rounded-lg bg-[#143640]/5 text-[#143640] font-bold">
-
-                  {user.total_referrals ??
-
-                    0}
-
-                </span>
-
-              </td>
-
-
-              {/* Created */}
-
-              <td className="px-6 py-5 text-sm text-gray-500">
-
-                {user.created_at
-
-                  ? new Date(
-
-                      user.created_at
-
-                    ).toLocaleDateString()
-
-                  : '-'}
-
-              </td>
-
-            </tr>
-
-          )
-
-        )}
-
-      </tbody>
-
-    </table>
-
-  </div>
-
-</section>
-      {/* REFERRALS */}
-
-<section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-10">
-
-  {/* Section Header */}
-
-  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-6 border-b border-gray-100">
-
-    <div className="flex items-center gap-4">
-
-      <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-[#143640]/5">
-
-        <FaLink className="text-[#143640] text-xl" />
-
-      </div>
-
-      <div>
-
-        <h2 className="text-xl md:text-2xl font-bold text-[#143640]">
-
-          Referral History
-
-        </h2>
-
-        <p className="text-sm text-gray-500 mt-1">
-
-          Track referral relationships between users
-
-        </p>
-
-      </div>
-
-    </div>
-
-
-    <div className="bg-[#143640]/5 text-[#143640] px-4 py-2 rounded-lg text-sm font-semibold">
-
-      {referrals.length} Total Referrals
-
-    </div>
-
-  </div>
-
-
-  {/* Table */}
-
-  <div className="overflow-x-auto">
-
-    <table className="w-full min-w-[900px]">
-
-      <thead>
-
-        <tr className="bg-gray-50 border-b border-gray-100">
-
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
-
-            Referrer
-
-          </th>
-
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
-
-            Referred User
-
-          </th>
-
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
-
-            Referral Code
-
-          </th>
-
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
-
-            Date
-
-          </th>
-
-        </tr>
-
-      </thead>
-
-
-      <tbody className="divide-y divide-gray-100">
-
-        {referrals.map(
-
-          (
-
-            referral
-
-          ) => {
-
-            const referrer =
-
-              users.find(
-
-                (user) =>
-
-                  user.id ===
-
-                  referral.referrer_id
-
-              );
-
-
-            const referredUser =
-
-              users.find(
-
-                (user) =>
-
-                  user.id ===
-
-                  referral.referred_user_id
-
-              );
-
-
-            return (
-
-              <tr
-
-                key={
-
-                  referral.id
-
-                }
-
-                className="hover:bg-gray-50/80 transition-colors duration-200"
-
-              >
-
-                {/* Referrer */}
-
-                <td className="px-6 py-5">
-
-                  <div className="flex items-center gap-3">
-
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#143640] text-[#E7B548] font-bold">
-
-                      {(
-
-                        referrer?.full_name ||
-
-                        referrer?.email ||
-
-                        'U'
-
-                      )
-
-                        .charAt(0)
-
-                        .toUpperCase()}
-
-                    </div>
-
-                    <div>
-
-                      <p className="font-bold text-gray-900">
-
-                        {referrer?.full_name ||
-
-                          'Unknown User'}
-
-                      </p>
-
-                      <p className="text-sm text-gray-500">
-
-                        {referrer?.email ||
-
-                          '-'}
-
-                      </p>
-
-                    </div>
-
-                  </div>
-
-                </td>
-
-
-                {/* Referred User */}
-
-                <td className="px-6 py-5">
-
-                  <div className="flex items-center gap-3">
-
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#E7B548]/20 text-[#143640] font-bold">
-
-                      {(
-
-                        referredUser?.full_name ||
-
-                        referredUser?.email ||
-
-                        'U'
-
-                      )
-
-                        .charAt(0)
-
-                        .toUpperCase()}
-
-                    </div>
-
-                    <div>
-
-                      <p className="font-bold text-gray-900">
-
-                        {referredUser?.full_name ||
-
-                          'Unknown User'}
-
-                      </p>
-
-                      <p className="text-sm text-gray-500">
-
-                        {referredUser?.email ||
-
-                          '-'}
-
-                      </p>
-
-                    </div>
-
-                  </div>
-
-                </td>
-
-
-                {/* Referral Code */}
-
-                <td className="px-6 py-5">
-
-                  <span className="inline-flex items-center bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-lg font-mono text-sm text-[#143640]">
-
-                    {referral.referral_code}
-
-                  </span>
-
-                </td>
-
-
-                {/* Date */}
-
-                <td className="px-6 py-5 text-sm text-gray-500">
-
-                  {referral.created_at
-
-                    ? new Date(
-
-                        referral.created_at
-
-                      ).toLocaleDateString()
-
-                    : '-'}
-
-                </td>
-
-              </tr>
-
+              </div>
             );
+          })}
 
-          }
+          {referrals.length === 0 && (
+            <div className="text-center py-10 text-gray-400">
+              No referrals found.
+            </div>
+          )}
 
-        )}
+        </div>
 
-      </tbody>
-
-    </table>
-
-  </div>
-
-</section>
-
+      </section>
 {/* BOOKINGS */}
 
 <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-10">
 
   {/* Section Header */}
 
-  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-6 border-b border-gray-100">
+  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-3 bg-[#143640] border-b border-[#E7B548]/20">
 
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-3">
 
-      <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-[#143640]/5">
+      <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#143640]/5">
 
-        <FaClock className="text-[#143640] text-xl" />
+        <FaClock className="text-[#143640] text-base" />
 
       </div>
 
       <div>
 
-        <h2 className="text-xl md:text-2xl font-bold text-[#143640]">
+        <h2 className="text-base md:text-2xl font-bold text-[#E7B548]">
 
           Bookings
 
         </h2>
 
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-xs text-white/70 mt-0.5">
 
           Manage and monitor customer bookings
 
@@ -1465,80 +1365,131 @@ setLoading(false);
 
     </div>
 
-    <div className="bg-[#143640]/5 text-[#143640] px-4 py-2 rounded-lg text-sm font-semibold">
+    <div className="flex flex-wrap items-center gap-2">
 
-      {bookings.length} Total Bookings
-
-    </div>
-
+  <div className="bg-white border border-gray-200 px-5 py-3 rounded-xl text-sm font-semibold shadow-sm">
+    <span className="text-green-600 font-extrabold">
+      {
+        bookings.filter(
+          (b) => b.status === 'completed'
+        ).length
+      }
+    </span>
+    <span className="ml-1">
+      Completed
+    </span>
   </div>
+
+
+  <div className="bg-white border border-gray-200 px-5 py-3 rounded-xl text-sm font-semibold shadow-sm">
+    <span className="text-blue-600 font-extrabold">
+      {
+        bookings.filter(
+          (b) => b.status === 'confirmed'
+        ).length
+      }
+    </span>
+    <span className="ml-1">
+      Confirmed
+    </span>
+  </div>
+
+
+  <div className="bg-white border border-gray-200 px-5 py-3 rounded-xl text-sm font-semibold shadow-sm">
+    <span className="text-red-600 font-extrabold">
+      {
+        bookings.filter(
+          (b) => b.status === 'rejected'
+        ).length
+      }
+    </span>
+    <span className="ml-1">
+      Rejected
+    </span>
+  </div>
+
+
+  <div className="bg-white border border-gray-200 px-5 py-3 rounded-xl text-sm font-semibold shadow-sm">
+    <span className="text-gray-600 font-extrabold">
+      {
+        bookings.filter(
+          (b) => b.status === 'cancelled'
+        ).length
+      }
+    </span>
+    <span className="ml-1">
+      Cancelled
+    </span>
+  </div>
+
+</div>  </div>
 
 
   {/* Table */}
 
   <div className="overflow-x-auto">
 
-    <table className="w-full min-w-[1500px]">
+    <table className="w-full min-w-[900px]">
 
       <thead>
 
         <tr className="bg-gray-50 border-b border-gray-100">
 
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Customer
 
           </th>
 
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Phone
 
           </th>
 
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Service
 
           </th>
 
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Property
 
           </th>
 
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Area
 
           </th>
 
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Address
 
           </th>
 
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Date
 
           </th>
 
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Time
 
           </th>
 
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Referral
 
           </th>
 
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Status
 
@@ -1610,7 +1561,7 @@ setLoading(false);
 
               {/* Phone */}
 
-              <td className="px-6 py-5 text-sm text-gray-700">
+              <td className="px-6 py-5 text-xs text-gray-700">
 
                 {booking.customer_phone ||
 
@@ -1636,7 +1587,7 @@ setLoading(false);
 
               {/* Property */}
 
-              <td className="px-6 py-5 text-sm text-gray-700">
+              <td className="px-6 py-5 text-xs text-gray-700">
 
                 {booking.property_type ||
 
@@ -1647,7 +1598,7 @@ setLoading(false);
 
               {/* Area */}
 
-              <td className="px-6 py-5 text-sm text-gray-700">
+              <td className="px-6 py-5 text-xs text-gray-700">
 
                 {booking.area ||
 
@@ -1658,7 +1609,7 @@ setLoading(false);
 
               {/* Address */}
 
-              <td className="px-6 py-5 text-sm text-gray-700 max-w-[250px]">
+              <td className="px-6 py-5 text-xs text-gray-700 max-w-[250px]">
 
                 <div className="truncate max-w-[250px]">
 
@@ -1673,7 +1624,7 @@ setLoading(false);
 
               {/* Date */}
 
-              <td className="px-6 py-5 text-sm text-gray-500 whitespace-nowrap">
+              <td className="px-6 py-5 text-xs text-gray-500 whitespace-nowrap">
 
                 {booking.booking_date ||
 
@@ -1684,7 +1635,7 @@ setLoading(false);
 
               {/* Time */}
 
-              <td className="px-6 py-5 text-sm text-gray-500 whitespace-nowrap">
+              <td className="px-6 py-5 text-xs text-gray-500 whitespace-nowrap">
 
                 {booking.booking_time ||
 
@@ -1697,7 +1648,7 @@ setLoading(false);
 
               <td className="px-6 py-5">
 
-                <span className="inline-flex items-center bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-lg font-mono text-sm text-[#143640]">
+                <span className="inline-flex items-center bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-lg font-mono text-xs text-[#143640]">
 
                   {booking.referral_code_used ||
 
@@ -1712,12 +1663,12 @@ setLoading(false);
 
 <td className="px-6 py-5">
 
-  <div className="flex flex-col gap-3">
+  <div className="flex flex-col gap-2">
 
     {/* Current Status */}
 
     <span
-      className={`inline-flex items-center justify-center px-3 py-1.5 rounded-full text-sm font-semibold ${
+      className={`inline-flex items-center justify-center px-2 py-1 rounded-full text-[11px] font-semibold ${
         booking.status === 'confirmed'
           ? 'bg-blue-50 text-blue-700 border border-blue-200'
           : booking.status === 'completed'
@@ -1732,7 +1683,7 @@ setLoading(false);
 
     {/* Status Buttons */}
 
-    <div className="flex flex-wrap gap-2">
+    <div className="flex items-center gap-1.5 flex-nowrap">
 
       <button
         onClick={() =>
@@ -1742,7 +1693,7 @@ setLoading(false);
           )
         }
         disabled={loading}
-        className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition disabled:opacity-50"
+        className="px-2 py-1 rounded-md bg-blue-600 text-white text-[11px] font-semibold hover:bg-blue-700 transition disabled:opacity-50"
       >
         Confirm
       </button>
@@ -1755,7 +1706,7 @@ setLoading(false);
           )
         }
         disabled={loading}
-        className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-semibold hover:bg-green-700 transition disabled:opacity-50"
+        className="px-2 py-1 rounded-md bg-green-600 text-white text-[11px] font-semibold hover:bg-green-700 transition disabled:opacity-50"
       >
         Complete
       </button>
@@ -1769,7 +1720,7 @@ setLoading(false);
       )
     }
     disabled={loading}
-    className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700 transition disabled:opacity-50"
+    className="px-2 py-1 rounded-md bg-red-600 text-white text-[11px] font-semibold hover:bg-red-700 transition disabled:opacity-50"
   >
     Cancel
   </button>
@@ -1782,7 +1733,7 @@ setLoading(false);
       )
     }
     disabled={loading}
-    className="px-3 py-1.5 rounded-lg bg-yellow-500 text-white text-xs font-semibold hover:bg-yellow-600 transition disabled:opacity-50"
+    className="px-2 py-1 rounded-md bg-yellow-500 text-white text-[11px] font-semibold hover:bg-yellow-600 transition disabled:opacity-50"
   >
     Pending
   </button>
@@ -1810,25 +1761,25 @@ setLoading(false);
 <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
   {/* Section Header */}
 
-  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-6 border-b border-gray-100">
+  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-3 bg-[#143640] border-b border-[#E7B548]/20">
 
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-3">
 
-      <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-[#143640]/5">
+      <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#143640]/5">
 
-        <FaGift className="text-[#143640] text-xl" />
+        <FaGift className="text-[#E7B548] text-base" />
 
       </div>
 
       <div>
 
-        <h2 className="text-xl md:text-2xl font-bold text-[#143640]">
+        <h2 className="text-base md:text-2xl font-bold text-[#E7B548]">
 
           Reward Requests
 
         </h2>
 
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-xs text-white/70 mt-0.5">
 
           Review and manage user reward requests
 
@@ -1841,13 +1792,13 @@ setLoading(false);
 
     <div className="flex items-center gap-3">
 
-      <div className="bg-yellow-50 text-yellow-700 border border-yellow-100 px-4 py-2 rounded-lg text-sm font-semibold">
+      <div className="bg-yellow-50 text-yellow-700 border border-yellow-100 px-4 py-2 rounded-lg text-xs font-semibold">
 
         {pending} Pending
 
       </div>
 
-      <div className="bg-[#143640]/5 text-[#143640] px-4 py-2 rounded-lg text-sm font-semibold">
+      <div className="bg-[#143640]/5 text-[#143640] px-4 py-2 rounded-lg text-xs font-semibold">
 
         {rewardRequests.length} Total
 
@@ -1862,43 +1813,43 @@ setLoading(false);
 
   <div className="overflow-x-auto">
 
-    <table className="w-full min-w-[1100px]">
+    <table className="w-full min-w-[900px]">
 
       <thead>
 
         <tr className="bg-gray-50 border-b border-gray-100">
 
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             User
 
           </th>
 
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Reward
 
           </th>
 
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Points
 
           </th>
 
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Status
 
           </th>
 
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Date
 
           </th>
 
-          <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Actions
 
@@ -1980,7 +1931,7 @@ setLoading(false);
 
                       </p>
 
-                      <p className="text-sm text-gray-500">
+                      <p className="text-xs text-gray-500">
 
                         {rewardUser?.email ||
 
@@ -2080,7 +2031,7 @@ setLoading(false);
 
                 {/* Date */}
 
-                <td className="px-6 py-5 text-sm text-gray-500">
+                <td className="px-6 py-5 text-xs text-gray-500">
 
                   {reward.created_at
 
@@ -2114,7 +2065,7 @@ setLoading(false);
                         disabled={
                           loading
                         }
-                        className="group/approve flex items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-xl font-semibold text-sm hover:bg-green-700 hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="group/approve flex items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-xl font-semibold text-xs hover:bg-green-700 hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
 
                         <FaCheck className="group-hover/approve:scale-110 transition-transform" />
@@ -2134,7 +2085,7 @@ setLoading(false);
                         disabled={
                           loading
                         }
-                        className="group/reject flex items-center gap-2 bg-red-600 text-white px-4 py-2.5 rounded-xl font-semibold text-sm hover:bg-red-700 hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="group/reject flex items-center gap-2 bg-red-600 text-white px-4 py-2.5 rounded-xl font-semibold text-xs hover:bg-red-700 hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
 
                         <FaTimes className="group-hover/reject:scale-110 transition-transform" />
@@ -2147,7 +2098,7 @@ setLoading(false);
 
                   ) : (
 
-                    <span className="inline-flex items-center px-3 py-2 rounded-lg bg-gray-100 text-gray-500 text-sm font-medium">
+                    <span className="inline-flex items-center px-3 py-2 rounded-lg bg-gray-100 text-gray-500 text-xs font-medium">
 
                       Processed
 
@@ -2171,14 +2122,254 @@ setLoading(false);
 
   </div>
 
+</section>      {/* USERS */}
+
+<section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-10">
+
+  {/* Section Header */}
+
+  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-3 bg-[#143640] border-b border-[#E7B548]/20">
+
+    <div className="flex items-center gap-3">
+
+      <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#143640]/5">
+
+        <FaUsers className="text-[#143640] text-base" />
+
+      </div>
+
+      <div>
+
+        <h2 className="text-base md:text-2xl font-bold text-[#E7B548]">
+
+          Users
+
+        </h2>
+
+        <p className="text-xs text-white/70 mt-0.5">
+
+          Manage and monitor registered users
+
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div className="flex items-center gap-2 bg-white text-[#143640] border border-white/40 px-5 py-3 rounded-lg text-sm font-semibold shadow-sm">
+  <span className="text-[#E7B548] text-lg font-extrabold">
+    {users.length}
+  </span>
+
+  <span className="text-[#143640]">
+    Users
+  </span>
+</div>
+
+  </div>
+
+
+  {/* Table */}
+
+  <div className="overflow-x-auto">
+
+    <table className="w-full min-w-[850px]">
+
+      <thead>
+
+        <tr className="bg-gray-50 border-b border-gray-100">
+
+          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
+
+            User
+
+          </th>
+
+          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
+
+            Referral Code
+
+          </th>
+
+          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
+
+            Points
+
+          </th>
+
+          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
+
+            Referrals
+
+          </th>
+
+          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
+
+            Created
+
+          </th>
+
+        </tr>
+
+      </thead>
+
+
+      <tbody className="divide-y divide-gray-100">
+
+        {users.map(
+
+          (
+
+            user
+
+          ) => (
+
+            <tr
+
+              key={
+
+                user.id
+
+              }
+
+              className="group hover:bg-gray-50/80 transition-colors duration-200"
+
+            >
+
+              {/* User */}
+
+              <td className="px-6 py-5">
+
+                <div className="flex items-center gap-3">
+
+                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#143640] text-[#E7B548] font-bold">
+
+                    {(
+
+                      user.full_name ||
+
+                      user.email ||
+
+                      'U'
+
+                    )
+
+                      .charAt(0)
+
+                      .toUpperCase()}
+
+                  </div>
+
+                  <div>
+
+                    <p className="font-bold text-gray-900">
+
+                      {user.full_name ||
+
+                        'Unnamed User'}
+
+                    </p>
+
+                    <p className="text-xs text-gray-500">
+
+                      {user.email ||
+
+                        '-'}
+
+                    </p>
+
+                  </div>
+
+                </div>
+
+              </td>
+
+
+              {/* Referral Code */}
+
+              <td className="px-6 py-5">
+
+                <span className="inline-flex items-center bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-lg font-mono text-xs text-[#143640]">
+
+                  {user.referral_code ||
+
+                    '-'}
+
+                </span>
+
+              </td>
+
+
+              {/* Points */}
+
+              <td className="px-6 py-5">
+
+                <span className="inline-flex items-center gap-2 font-bold text-[#143640]">
+
+                  <FaCoins className="text-[#E7B548]" />
+
+                  {user.green_points ??
+
+                    0}
+
+                </span>
+
+              </td>
+
+
+              {/* Referrals */}
+
+              <td className="px-6 py-5">
+
+                <span className="inline-flex items-center justify-center min-w-[40px] px-3 py-1.5 rounded-lg bg-[#143640]/5 text-[#143640] font-bold">
+
+                  {user.total_referrals ??
+
+                    0}
+
+                </span>
+
+              </td>
+
+
+              {/* Created */}
+
+              <td className="px-6 py-5 text-xs text-gray-500">
+
+                {user.created_at
+
+                  ? new Date(
+
+                      user.created_at
+
+                    ).toLocaleDateString()
+
+                  : '-'}
+
+              </td>
+
+            </tr>
+
+          )
+
+        )}
+
+      </tbody>
+
+    </table>
+
+  </div>
+
 </section>
+
 
 
       {/* LOADING INDICATOR */}
 
       {loading && (
 
-        <div className="fixed bottom-5 right-5 bg-[#143640] text-white px-5 py-3 rounded-lg shadow">
+        <div className="fixed bottom-5 right-5 bg-[#143640] text-white px-5 py-2 rounded-lg shadow">
 
           Updating...
 
@@ -2210,22 +2401,22 @@ function StatCard({
 
   return (
 
-    <div className="group relative overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+    <div className="group relative overflow-hidden bg-white rounded-md border border-gray-100 shadow-sm">
 
       {/* Decorative Glow */}
 
       <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#E7B548]/10 rounded-full blur-2xl group-hover:bg-[#E7B548]/20 transition-all duration-300" />
 
 
-      <div className="relative p-6">
+      <div className="relative p-2">
 
         {/* Icon */}
 
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between mb-1">
 
-          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-[#143640]/5 text-[#143640] group-hover:bg-[#143640] group-hover:text-[#E7B548] transition-all duration-300">
+          <div className="flex items-center justify-center w-7 h-7 rounded-md bg-[#143640]/5 text-[#143640] group-hover:bg-[#143640] group-hover:text-[#E7B548] transition-all duration-300">
 
-            <span className="text-xl">
+            <span className="text-base">
 
               {icon}
 
@@ -2238,7 +2429,7 @@ function StatCard({
 
         {/* Value */}
 
-        <h3 className="text-3xl md:text-4xl font-extrabold text-[#143640] tracking-tight">
+        <h3 className="text-base font-extrabold text-[#143640] tracking-tight">
 
           {value.toLocaleString()}
 
@@ -2247,7 +2438,7 @@ function StatCard({
 
         {/* Title */}
 
-        <p className="text-gray-500 font-medium mt-2">
+        <p className="text-[11px] text-gray-500 font-medium mt-0.5">
 
           {title}
 
@@ -2256,7 +2447,7 @@ function StatCard({
 
         {/* Bottom Line */}
 
-        <div className="mt-5 h-1 w-12 rounded-full bg-[#E7B548] group-hover:w-20 transition-all duration-300" />
+        <div className="mt-1 h-0.5 w-5 rounded-full bg-[#E7B548] group-hover:w-20 transition-all duration-300" />
 
       </div>
 
@@ -2265,6 +2456,54 @@ function StatCard({
   );
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
