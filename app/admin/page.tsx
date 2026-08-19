@@ -478,93 +478,175 @@ const totalPoints =
 // ==========================================
 
 async function updateBookingStatus(
-id: string,
-status:
-| 'pending'
-| 'confirmed'
-| 'completed'
-| 'cancelled'
+  id: string,
+  status:
+    | 'pending'
+    | 'confirmed'
+    | 'completed'
+    | 'cancelled'
 ) {
-const confirmed = window.confirm(
-`Change booking status to "${status}"?`
-);
-
-if (!confirmed) {
-return;
-}
-
-setLoading(true);
-
-try {
-console.log(
-'Updating booking:',
-id,
-'to status:',
-status
-);
-
-
-const { data, error } = await supabase
-  .from('bookings')
-  .update({
-    status: status,
-  })
-  .eq('id', id)
-  .select();
-
-if (error) {
-  console.error(
-    'Booking status update error:',
-    error
+  const confirmed = window.confirm(
+    `Change booking status to "${status}"?`
   );
 
-  alert(
-    `Failed to update booking status:\n${error.message}`
+  if (!confirmed) {
+    return;
+  }
+
+  setLoading(true);
+
+  const booking = bookings.find(
+    (item) => item.id === id
   );
 
-  return;
-}
+  if (!booking) {
+    alert('Booking not found.');
+    setLoading(false);
+    return;
+  }
 
-console.log(
-  'Booking status updated successfully:',
-  data
-);
+  try {
+    console.log(
+      'Updating booking:',
+      id,
+      'to status:',
+      status
+    );
 
+    const { data, error } = await supabase
+      .from('bookings')
+      .update({
+        status,
+      })
+      .eq('id', id)
+      .select();
 
-setBookings((currentBookings) =>
-  currentBookings.map((booking) =>
-    booking.id === id
-      ? {
-          ...booking,
-          status,
+    if (error) {
+      console.error(
+        'Booking status update error:',
+        error
+      );
+
+      alert(
+        `Failed to update booking status:\n${error.message}`
+      );
+
+      return;
+    }
+
+    console.log(
+      'Booking status updated successfully:',
+      data
+    );
+
+    setBookings((currentBookings) =>
+      currentBookings.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              status,
+            }
+          : item
+      )
+    );
+
+    // ------------------------------------------
+    // SEND CONFIRMATION EMAIL
+    // ------------------------------------------
+
+    if (status === 'confirmed') {
+      const customer = users.find(
+        (user) => user.id === booking.user_id
+      );
+
+      const customerEmail = customer?.email;
+
+      if (!customerEmail) {
+        alert(
+          'Booking confirmed, but no customer email was found.'
+        );
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          '/api/send-booking-confirmation',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: customerEmail,
+              customerName:
+                booking.customer_name ||
+                customer?.full_name ||
+                'Customer',
+              service: booking.service,
+              propertyType: booking.property_type,
+              area: booking.area,
+              address: booking.address,
+              bookingDate: booking.booking_date,
+              bookingTime: booking.booking_time,
+            }),
+          }
+        );
+
+        const result = await response.json().catch(
+          () => null
+        );
+
+        if (!response.ok) {
+          console.error(
+            'Confirmation email failed:',
+            result
+          );
+
+          alert(
+            'Booking confirmed, but the confirmation email could not be sent.'
+          );
+
+          return;
         }
-      : booking
-  )
-);
 
-alert(
-  `Booking status changed to "${status}".`
-);
+        alert(
+          `Booking confirmed successfully.\nEmail sent to ${customerEmail}.`
+        );
 
+        return;
 
+      } catch (error) {
+        console.error(
+          'Confirmation email error:',
+          error
+        );
 
-} catch (error) {
-console.error(
-'Booking status error:',
-error
-);
+        alert(
+          'Booking confirmed, but there was a problem sending the confirmation email.'
+        );
 
+        return;
+      }
+    }
 
-alert(
-  'Something went wrong while updating the booking.'
-);
+    alert(
+      `Booking status changed to "${status}".`
+    );
 
+  } catch (error) {
+    console.error(
+      'Booking status error:',
+      error
+    );
 
-} finally {
-setLoading(false);
+    alert(
+      'Something went wrong while updating the booking.'
+    );
+
+  } finally {
+    setLoading(false);
+  }
 }
-}
-
   // ==========================================
   // APPROVE / REJECT REWARD
   // ==========================================
@@ -2456,6 +2538,9 @@ function StatCard({
   );
 
 }
+
+
+
 
 
 
