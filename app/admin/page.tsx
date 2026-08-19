@@ -551,18 +551,22 @@ async function updateBookingStatus(
       )
     );
 
-    // ------------------------------------------
+       // ------------------------------------------
     // SEND CONFIRMATION EMAIL
     // ------------------------------------------
 
     if (status === 'confirmed') {
-            if (booking.confirmation_email_sent) {
+
+      const currentBooking = data?.[0];
+
+      if (currentBooking?.confirmation_email_sent) {
         alert(
           'Confirmation email was already sent.'
         );
 
         return;
       }
+
       const customer = users.find(
         (user) => user.id === booking.user_id
       );
@@ -573,10 +577,12 @@ async function updateBookingStatus(
         alert(
           'Booking confirmed, but no customer email was found.'
         );
+
         return;
       }
 
       try {
+
         const response = await fetch(
           '/api/send-booking-confirmation',
           {
@@ -600,35 +606,28 @@ async function updateBookingStatus(
           }
         );
 
-        const result = await response.json().catch(
-          () => null
-        );
+        const result =
+          await response.json().catch(
+            () => null
+          );
 
         if (!response.ok) {
+
           console.error(
             'Confirmation email failed:',
             result
           );
-        const { error: flagError } = await supabase
-          .from('bookings')
-          .update({
-            confirmation_email_sent: true,
-          })
-          .eq('id', id);
 
-        if (flagError) {
-          console.error(
-            'Flag update error:',
-            flagError
-          );
-        }
           alert(
             'Booking confirmed, but the confirmation email could not be sent.'
           );
 
           return;
         }
-                const { error: emailFlagError } = await supabase
+
+        const {
+          error: emailFlagError,
+        } = await supabase
           .from('bookings')
           .update({
             confirmation_email_sent: true,
@@ -636,11 +635,28 @@ async function updateBookingStatus(
           .eq('id', id);
 
         if (emailFlagError) {
+
           console.error(
             'Failed updating confirmation_email_sent:',
             emailFlagError
           );
+
         }
+
+        setBookings(
+          (currentBookings) =>
+            currentBookings.map(
+              (item) =>
+                item.id === id
+                  ? {
+                      ...item,
+                      status: 'confirmed',
+                      confirmation_email_sent: true,
+                    }
+                  : item
+            )
+        );
+
         alert(
           `Booking confirmed successfully.\nEmail sent to ${customerEmail}.`
         );
@@ -648,6 +664,7 @@ async function updateBookingStatus(
         return;
 
       } catch (error) {
+
         console.error(
           'Confirmation email error:',
           error
@@ -2570,60 +2587,3 @@ function StatCard({
   );
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
