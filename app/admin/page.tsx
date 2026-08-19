@@ -56,6 +56,7 @@ type Booking = {
   id: string;
   user_id: string;
   service?: string | null;
+  confirmation_email_sent: boolean;
   property_type?: string | null;
   area?: string | null;
   address?: string | null;
@@ -555,6 +556,13 @@ async function updateBookingStatus(
     // ------------------------------------------
 
     if (status === 'confirmed') {
+            if (booking.confirmation_email_sent) {
+        alert(
+          'Confirmation email was already sent.'
+        );
+
+        return;
+      }
       const customer = users.find(
         (user) => user.id === booking.user_id
       );
@@ -608,7 +616,12 @@ async function updateBookingStatus(
 
           return;
         }
-
+        await supabase
+          .from('bookings')
+          .update({
+            confirmation_email_sent: true,
+          })
+          .eq('id', id);
         alert(
           `Booking confirmed successfully.\nEmail sent to ${customerEmail}.`
         );
