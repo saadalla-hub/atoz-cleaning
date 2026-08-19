@@ -609,7 +609,19 @@ async function updateBookingStatus(
             'Confirmation email failed:',
             result
           );
+        const { error: flagError } = await supabase
+          .from('bookings')
+          .update({
+            confirmation_email_sent: true,
+          })
+          .eq('id', id);
 
+        if (flagError) {
+          console.error(
+            'Flag update error:',
+            flagError
+          );
+        }
           alert(
             'Booking confirmed, but the confirmation email could not be sent.'
           );
