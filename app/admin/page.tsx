@@ -1642,6 +1642,12 @@ if (emailClaimed !== true) {
 
           <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
+            Email
+
+          </th>
+
+          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
+
             Status
 
           </th>
@@ -1806,6 +1812,30 @@ if (emailClaimed !== true) {
                     '-'}
 
                 </span>
+
+              </td>
+
+
+              {/* Email */}
+
+
+              <td className="px-6 py-5">
+
+
+                <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                  booking.confirmation_email_sent
+                    ? 'bg-green-50 text-green-700 border border-green-200'
+                    : 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                }`}>
+
+
+                  {booking.confirmation_email_sent
+                    ? 'Sent'
+                    : 'Not Sent'}
+
+
+                </span>
+
 
               </td>
 
