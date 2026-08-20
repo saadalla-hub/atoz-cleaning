@@ -519,8 +519,7 @@ async function updateBookingStatus(
       .update({
         status,
       })
-      .eq('id', id)
-      .select();
+      .eq('id', id);
 
     if (error) {
       console.error(
@@ -534,11 +533,6 @@ async function updateBookingStatus(
 
       return;
     }
-
-    console.log(
-      'Booking status updated successfully:',
-      data
-    );
 
     setBookings((currentBookings) =>
       currentBookings.map((item) =>
@@ -2613,6 +2607,7 @@ function StatCard({
   );
 
 }
+
 
 
 
