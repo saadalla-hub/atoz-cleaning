@@ -62,6 +62,7 @@ type Booking = {
   address?: string | null;
   booking_date?: string | null;
   booking_time?: string | null;
+  estimated_price?: number | null;
   status?: string | null;
   referral_code_used?: string | null;
   notes?: string | null;
@@ -104,6 +105,46 @@ const [bookings, setBookings] =
   const [loading, setLoading] =
     useState(true);
 
+const todayKey = new Date().toISOString().split('T')[0];
+
+const [selectedServiceDate, setSelectedServiceDate] =
+  useState(todayKey);
+
+const selectedServiceDateLabel = new Date(
+  selectedServiceDate + 'T12:00:00'
+).toLocaleDateString('en-US', {
+  weekday: 'long',
+  month: 'long',
+  day: 'numeric',
+  year: 'numeric',
+});
+
+const todaysServices = bookings
+.filter(
+(booking) =>
+booking.booking_date === selectedServiceDate &&
+booking.status !== 'cancelled'
+)
+.sort((a, b) => {
+const parseTime = (value: string | null | undefined) => {
+const match = String(value || '').trim().match(
+/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i
+);
+
+if (!match) return Number.MAX_SAFE_INTEGER;
+
+let hour = Number(match[1]);
+const minute = Number(match[2]);
+const period = match[3]?.toUpperCase();
+
+if (period === 'PM' && hour !== 12) hour += 12;
+if (period === 'AM' && hour === 12) hour = 0;
+
+return hour * 60 + minute;
+};
+
+return parseTime(a.booking_time) - parseTime(b.booking_time);
+});
   const [errorMessage, setErrorMessage] =
     useState('');
 
@@ -545,6 +586,60 @@ async function updateBookingStatus(
       )
     );
 
+    // ------------------------------------------
+    // COMPLETE REFERRAL REWARD
+    // ------------------------------------------
+
+    if (status === 'completed') {
+
+      try {
+
+        const {
+          data: referralResult,
+          error: referralError,
+        } = await supabase.rpc(
+          'complete_referral_for_booking',
+          {
+            p_booking_id: id,
+          }
+        );
+
+        console.log(
+          'REFERRAL COMPLETION RESULT:',
+          {
+            bookingId: id,
+            referralResult,
+            referralError,
+          }
+        );
+
+        if (referralError) {
+
+          console.error(
+            'Referral completion RPC error:',
+            referralError
+          );
+
+          alert(
+            'Booking completed, but the referral reward could not be processed.'
+          );
+
+        }
+
+      } catch (referralError) {
+
+        console.error(
+          'Referral completion error:',
+          referralError
+        );
+
+        alert(
+          'Booking completed, but there was a problem processing the referral reward.'
+        );
+
+      }
+
+    }
        // ------------------------------------------
     // SEND CONFIRMATION EMAIL
     // ------------------------------------------
@@ -603,6 +698,12 @@ if (emailClaimed !== true) {
 
       try {
 
+        console.log(
+          'BOOKING PRICE BEFORE EMAIL:',
+          booking.estimated_price,
+          'FULL BOOKING:',
+          booking
+        );
         const response = await fetch(
           '/api/send-booking-confirmation',
           {
@@ -622,6 +723,7 @@ if (emailClaimed !== true) {
               address: booking.address,
               bookingDate: booking.booking_date,
               bookingTime: booking.booking_time,
+              estimatedPrice: booking.estimated_price,
             }),
           }
         );
@@ -1091,6 +1193,244 @@ if (emailClaimed !== true) {
   </div>
 
 </div>
+      {/* TODAY'S SERVICES CARD */}
+
+      <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-6">
+
+        {/* Header */}
+
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-3 md:p-4 bg-[#143640]">
+
+          <div className="flex items-center gap-3">
+
+            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-[#E7B548]/15 border border-[#E7B548]/30">
+
+              <FaClock className="text-[#E7B548] text-lg" />
+
+            </div>
+
+            <div>
+
+              <h2 className="text-base md:text-xl font-bold text-[#E7B548]">
+                Service Log
+              </h2>
+
+              <p className="text-[11px] md:text-xs text-white/70 mt-0.5">
+                Customers scheduled for the selected date
+              </p>
+
+              <p className="text-xs md:text-sm font-semibold text-white mt-1">
+                {selectedServiceDateLabel}
+              </p>
+
+            </div>
+
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+
+            <button
+              type="button"
+              onClick={() => {
+                const date = new Date(
+                  selectedServiceDate + 'T12:00:00'
+                );
+                date.setDate(date.getDate() - 1);
+                setSelectedServiceDate(
+                  date.toISOString().split('T')[0]
+                );
+              }}
+              className="w-8 h-8 rounded-lg bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-colors font-bold"
+              title="Previous day"
+            >
+              ‹
+            </button>
+
+            <input
+              type="date"
+              value={selectedServiceDate}
+              onChange={(e) =>
+                setSelectedServiceDate(e.target.value)
+              }
+              className="px-2.5 py-1.5 rounded-lg bg-white text-[#143640] text-xs md:text-sm font-semibold border-0 outline-none"
+            />
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedServiceDate(todayKey);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-white text-xs font-semibold hover:bg-white/20 transition-colors"
+            >
+              Today
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const date = new Date(
+                  selectedServiceDate + 'T12:00:00'
+                );
+                date.setDate(date.getDate() + 1);
+                setSelectedServiceDate(
+                  date.toISOString().split('T')[0]
+                );
+              }}
+              className="w-8 h-8 rounded-lg bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-colors font-bold"
+              title="Next day"
+            >
+              ›
+            </button>
+
+            <span className="px-3 py-1.5 rounded-full bg-[#E7B548] text-[#143640] text-xs md:text-sm font-bold">
+              {todaysServices.length}
+              {' '}
+              {todaysServices.length === 1 ? 'Service' : 'Services'}
+            </span>
+
+          </div>
+
+        </div>
+
+        {/* Today's bookings */}
+
+        {todaysServices.length === 0 ? (
+
+          <div className="p-5 md:p-6 text-center">
+
+            <div className="text-4xl mb-3">
+              📅
+            </div>
+
+            <h3 className="text-lg font-bold text-[#143640]">
+              No services scheduled for this date
+            </h3>
+
+            <p className="text-sm text-gray-500 mt-1">
+              There are no scheduled services for the selected date.
+            </p>
+
+          </div>
+
+        ) : (
+
+          <div className="divide-y divide-gray-100">
+
+            {todaysServices.map((booking) => (
+
+              <div
+                key={booking.id}
+                className="p-3 md:p-4 hover:bg-gray-50 transition-colors"
+              >
+
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+
+                  {/* Time */}
+
+                  <div className="shrink-0 sm:w-24">
+
+                    <div className="text-base md:text-lg font-bold text-[#143640]">
+                      {booking.booking_time || '--'}
+                    </div>
+
+                  </div>
+
+                  {/* Main service details */}
+
+                  <div className="min-w-0 flex-1">
+
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+
+                      <h3 className="font-bold text-[#143640] text-sm md:text-base">
+                        {booking.customer_name || 'Customer'}
+                      </h3>
+
+                      <span className="text-gray-300">•</span>
+
+                      <span className="text-sm text-gray-600">
+                        {booking.service || 'Service'}
+                      </span>
+
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5 text-xs text-gray-500">
+
+                      <span>
+                        {booking.area || '-'}
+                      </span>
+
+                      <span className="text-gray-300">•</span>
+
+                      <span>
+                        {booking.property_type || '-'}
+                      </span>
+
+                      <span className="text-gray-300">•</span>
+
+                      <span className="truncate max-w-[220px]">
+                        {booking.address || '-'}
+                      </span>
+
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-xs text-gray-500">
+
+                      <span className="truncate max-w-[260px]">
+                        📧 {users.find((u) => u.id === booking.user_id)?.email || '-'}
+                      </span>
+
+                      <span className="text-gray-300">•</span>
+
+                      <span>
+                        📞 {booking.customer_phone || '-'}
+                      </span>
+
+                    </div>
+
+                  </div>
+
+                  {/* Price */}
+
+                  <div className="shrink-0 text-sm font-bold text-[#143640] sm:min-w-[90px] sm:text-right">
+
+                    {booking.estimated_price != null
+                      ? `${Number(booking.estimated_price).toLocaleString('en-US')} EGP`
+                      : '-'}
+
+                  </div>
+
+                  {/* Status */}
+
+                  <div className="shrink-0">
+
+                    <span
+                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                        booking.status === 'confirmed'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-yellow-100 text-yellow-700'
+                      }`}
+                    >
+
+                      {booking.status === 'confirmed'
+                        ? 'Confirmed'
+                        : 'Pending'}
+
+                    </span>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            ))}
+
+          </div>
+
+        )}
+
+      </section>
+
       {/* STATISTICS */}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-5">
@@ -1490,7 +1830,7 @@ if (emailClaimed !== true) {
 
   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-3 bg-[#143640] border-b border-[#E7B548]/20">
 
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-1.5">
 
       <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#143640]/5">
 
@@ -1580,73 +1920,85 @@ if (emailClaimed !== true) {
 
   <div className="overflow-x-auto">
 
-    <table className="w-full min-w-[900px]">
+    <table className="w-full table-fixed">
+  <colgroup>
+    <col className="w-[155px]" />
+    <col className="w-[90px]" />
+    <col className="w-[95px]" />
+    <col className="w-[70px]" />
+    <col className="w-[60px]" />
+    <col className="w-[90px]" />
+    <col className="w-[75px]" />
+    <col className="w-[70px]" />
+    <col className="w-[75px]" />
+    <col className="w-[80px]" />
+    <col className="w-[270px]" />
+  </colgroup>
 
       <thead>
 
         <tr className="bg-gray-50 border-b border-gray-100">
 
-          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-1 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Customer
 
           </th>
 
-          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-1 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Phone
 
           </th>
 
-          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-1 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Service
 
           </th>
 
-          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-1 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Property
 
           </th>
 
-          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-1 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Area
 
           </th>
 
-          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-1 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Address
 
           </th>
 
-          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-1 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Date
 
           </th>
 
-          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-1 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Time
 
           </th>
 
-          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-1 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Referral
 
           </th>
 
-          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-1 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Email
 
           </th>
-
-          <th className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
+          <th className="px-1 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
 
             Status
 
@@ -1673,11 +2025,11 @@ if (emailClaimed !== true) {
 
               {/* Customer */}
 
-              <td className="px-6 py-5">
+              <td className="px-2 py-2 overflow-hidden">
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
 
-                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#143640] text-[#E7B548] font-bold">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#143640] text-[#E7B548] font-bold">
 
                     {(
 
@@ -1718,7 +2070,7 @@ if (emailClaimed !== true) {
 
               {/* Phone */}
 
-              <td className="px-6 py-5 text-xs text-gray-700">
+              <td className="px-2 py-2 text-xs text-gray-700 whitespace-nowrap overflow-hidden">
 
                 {booking.customer_phone ||
 
@@ -1729,7 +2081,7 @@ if (emailClaimed !== true) {
 
               {/* Service */}
 
-              <td className="px-6 py-5">
+              <td className="px-2 py-2 overflow-hidden">
 
                 <span className="font-semibold text-[#143640]">
 
@@ -1744,7 +2096,7 @@ if (emailClaimed !== true) {
 
               {/* Property */}
 
-              <td className="px-6 py-5 text-xs text-gray-700">
+              <td className="px-2 py-2 text-xs text-gray-700 whitespace-nowrap overflow-hidden">
 
                 {booking.property_type ||
 
@@ -1755,7 +2107,7 @@ if (emailClaimed !== true) {
 
               {/* Area */}
 
-              <td className="px-6 py-5 text-xs text-gray-700">
+              <td className="px-2 py-2 text-xs text-gray-700 whitespace-nowrap overflow-hidden">
 
                 {booking.area ||
 
@@ -1766,9 +2118,9 @@ if (emailClaimed !== true) {
 
               {/* Address */}
 
-              <td className="px-6 py-5 text-xs text-gray-700 max-w-[250px]">
+              <td className="px-2 py-2 text-xs text-gray-700 overflow-hidden">
 
-                <div className="truncate max-w-[250px]">
+                <div className="truncate w-full">
 
                   {booking.address ||
 
@@ -1781,7 +2133,7 @@ if (emailClaimed !== true) {
 
               {/* Date */}
 
-              <td className="px-6 py-5 text-xs text-gray-500 whitespace-nowrap">
+              <td className="px-2 py-2 text-xs text-gray-500 whitespace-nowrap overflow-hidden">
 
                 {booking.booking_date ||
 
@@ -1792,7 +2144,7 @@ if (emailClaimed !== true) {
 
               {/* Time */}
 
-              <td className="px-6 py-5 text-xs text-gray-500 whitespace-nowrap">
+              <td className="px-2 py-2 text-xs text-gray-500 whitespace-nowrap overflow-hidden">
 
                 {booking.booking_time ||
 
@@ -1803,9 +2155,9 @@ if (emailClaimed !== true) {
 
               {/* Referral */}
 
-              <td className="px-6 py-5">
+              <td className="px-2 py-2 overflow-hidden">
 
-                <span className="inline-flex items-center bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-lg font-mono text-xs text-[#143640]">
+                <span className="inline-flex items-center bg-gray-100 border border-gray-200 px-2 py-1 rounded-lg font-mono text-[11px] text-[#143640]">
 
                   {booking.referral_code_used ||
 
@@ -1819,10 +2171,10 @@ if (emailClaimed !== true) {
               {/* Email */}
 
 
-              <td className="px-6 py-5">
+              <td className="px-2 py-2 overflow-hidden">
 
 
-                <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                <span className={`inline-flex items-center px-2 py-1 rounded-lg text-[11px] font-semibold ${
                   booking.confirmation_email_sent
                     ? 'bg-green-50 text-green-700 border border-green-200'
                     : 'bg-yellow-50 text-yellow-700 border border-yellow-200'
@@ -1838,13 +2190,11 @@ if (emailClaimed !== true) {
 
 
               </td>
-
-
              {/* Status */}
 
-<td className="px-6 py-5">
+<td className="px-2 py-2 whitespace-nowrap overflow-visible">
 
-  <div className="flex flex-col gap-2">
+  <div className="flex flex-col gap-1 w-fit">
 
     {/* Current Status */}
 
@@ -1864,7 +2214,7 @@ if (emailClaimed !== true) {
 
     {/* Status Buttons */}
 
-    <div className="flex items-center gap-1.5 flex-nowrap">
+    <div className="flex items-center gap-1 flex-nowrap">
 
       <button
         onClick={() =>
@@ -1874,7 +2224,7 @@ if (emailClaimed !== true) {
           )
         }
         disabled={loading}
-        className="px-2 py-1 rounded-md bg-blue-600 text-white text-[11px] font-semibold hover:bg-blue-700 transition disabled:opacity-50"
+        className="px-1.5 py-1 rounded-md bg-blue-600 text-white text-[11px] font-semibold hover:bg-blue-700 transition disabled:opacity-50"
       >
         Confirm
       </button>
@@ -1887,7 +2237,7 @@ if (emailClaimed !== true) {
           )
         }
         disabled={loading}
-        className="px-2 py-1 rounded-md bg-green-600 text-white text-[11px] font-semibold hover:bg-green-700 transition disabled:opacity-50"
+        className="px-1.5 py-1 rounded-md bg-green-600 text-white text-[11px] font-semibold hover:bg-green-700 transition disabled:opacity-50"
       >
         Complete
       </button>
@@ -1901,7 +2251,7 @@ if (emailClaimed !== true) {
       )
     }
     disabled={loading}
-    className="px-2 py-1 rounded-md bg-red-600 text-white text-[11px] font-semibold hover:bg-red-700 transition disabled:opacity-50"
+    className="px-1.5 py-1 rounded-md bg-red-600 text-white text-[11px] font-semibold hover:bg-red-700 transition disabled:opacity-50"
   >
     Cancel
   </button>
@@ -1914,7 +2264,7 @@ if (emailClaimed !== true) {
       )
     }
     disabled={loading}
-    className="px-2 py-1 rounded-md bg-yellow-500 text-white text-[11px] font-semibold hover:bg-yellow-600 transition disabled:opacity-50"
+    className="px-1.5 py-1 rounded-md bg-yellow-500 text-white text-[11px] font-semibold hover:bg-yellow-600 transition disabled:opacity-50"
   >
     Pending
   </button>
@@ -2637,6 +2987,39 @@ function StatCard({
   );
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

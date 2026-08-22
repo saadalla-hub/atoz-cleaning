@@ -70,7 +70,21 @@ if (error) {
 }
 
       const nextPath = new URLSearchParams(window.location.search).get('next');
-      router.push(nextPath || '/dashboard');
+
+      if (nextPath) {
+        router.push(nextPath);
+        return;
+      }
+
+      const { data: isAdmin, error: adminError } =
+        await supabase.rpc('is_admin');
+
+      if (!adminError && isAdmin) {
+        router.push('/admin');
+        return;
+      }
+
+      router.push('/dashboard');
 
 }
 
@@ -354,4 +368,5 @@ Welcome Back </h1>
 
 );
 }
+
 

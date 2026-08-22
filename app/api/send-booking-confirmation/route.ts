@@ -1,4 +1,4 @@
-﻿import nodemailer from 'nodemailer';
+﻿import { Resend } from 'resend';
 
 export async function POST(request: Request) {
   try {
@@ -13,6 +13,7 @@ export async function POST(request: Request) {
       address,
       bookingDate,
       bookingTime,
+      estimatedPrice,
     } = body;
 
     if (!email) {
@@ -26,13 +27,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const gmailUser = process.env.GMAIL_USER;
-    const gmailAppPassword =
-      process.env.GMAIL_APP_PASSWORD;
+    const resendApiKey = process.env.RESEND_API_KEY;
 
-    if (!gmailUser || !gmailAppPassword) {
+    if (!resendApiKey) {
       console.error(
-        'Gmail environment variables are missing.'
+        'RESEND_API_KEY is missing.'
       );
 
       return Response.json(
@@ -45,16 +44,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: gmailUser,
-        pass: gmailAppPassword,
-      },
-    });
+    const resend = new Resend(resendApiKey);
 
-    await transporter.sendMail({
-      from: `"A to Z Cleaning Services" <${gmailUser}>`,
+    const { data: emailData, error: emailError } = await resend.emails.send({
+      from: 'A to Z Cleaning Services <onboarding@resend.dev>',
       to: email,
       subject: 'Booking Confirmation - A to Z Cleaning Services',
       text: `
@@ -86,6 +79,9 @@ ${bookingDate || '-'}
 
 🕐 Time | الوقت:
 ${bookingTime || '-'}
+
+💰 Price | السعر:
+${estimatedPrice != null ? `${Number(estimatedPrice).toLocaleString('en-US')} EGP` : '-'}
 
 Thank you for choosing A to Z Cleaning Services.
 شكرًا لاختياركم خدمات A to Z للتنظيف.
@@ -305,7 +301,27 @@ A to Z Cleaning Services
             </td>
           </tr>
 
-          <!-- MESSAGE -->
+                      <!-- PRICE CARD -->
+            <tr>
+              <td style="padding:0 35px 20px 35px;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#fffaf0; border:1px solid #E7B548; border-radius:10px;">
+                  <tr>
+                    <td style="padding:16px 18px; vertical-align:middle;">
+                      <div style="font-size:13px; color:#7a878c;">
+                        💰 Price
+                      </div>
+                      <div style="font-size:12px; color:#9aa5a9; margin-top:3px; direction:rtl; text-align:left;">
+                        السعر
+                      </div>
+                    </td>
+                    <td style="padding:16px 18px; color:#143640; font-size:16px; font-weight:bold; text-align:right;">
+                      ${estimatedPrice != null ? `${Number(estimatedPrice).toLocaleString('en-US')} EGP` : '-'}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+<!-- MESSAGE -->
           <tr>
             <td style="padding:0 35px 30px 35px;">
 
@@ -373,8 +389,25 @@ A to Z Cleaning Services
       `,
     });
 
+    if (emailError) {
+      console.error(
+        "Resend email error:",
+        emailError
+      );
+
+      return Response.json(
+        {
+          error: emailError.message || "Failed to send confirmation email."
+        },
+        {
+          status: 500
+        }
+      );
+    }
+
     console.log(
-      `Booking confirmation email sent to ${email}`
+      `Booking confirmation email sent to ${email}`,
+      emailData
     );
 
     return Response.json({
@@ -398,6 +431,13 @@ A to Z Cleaning Services
     );
   }
 }
+
+
+
+
+
+
+
 
 
 
