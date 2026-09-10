@@ -1,7 +1,7 @@
 ﻿import { createClient } from "@supabase/supabase-js";
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHmac, randomUUID, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-
+import { PRICES } from "../../../../lib/prices";
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SECRET_KEY!
@@ -14,12 +14,17 @@ type FlowData = {
   phone?: string;
   area?: string;
   service?: string;
+  propertyType?: string;
+  propertySize?: string;
+  cleaningType?: string;
+  estimatedPrice?: number | null;
   date?: string;
   time?: string;
   address?: string;
   notes?: string;
   userId?: string;
   bookingId?: string;
+  existingBooking?: boolean;
 };
 
 type ContactRow = {
@@ -252,17 +257,26 @@ async function shouldSendWelcome(
 }
 
 async function findUserByPhone(phone: string) {
-  const { data, error } = await supabase
-    .from("users")
-    .select("id, full_name, phone")
-    .eq("phone", phone)
-    .maybeSingle();
+  const variants = phoneVariants(phone);
 
-  if (error) {
-    throw new Error(`User lookup error: ${error.message}`);
+  for (const variant of variants) {
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, full_name, phone")
+      .eq("phone", variant)
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`User lookup error: ${error.message}`);
+    }
+
+    if (data) {
+      return data;
+    }
   }
 
-  return data;
+  return null;
 }
 
 async function createUser(
@@ -275,7 +289,7 @@ async function createUser(
     return existing.id;
   }
 
-  const userId = crypto.randomUUID();
+  const userId = randomUUID();
 
   const { data, error } = await supabase.rpc(
     "register_user_with_referral",
@@ -293,6 +307,12 @@ async function createUser(
   }
 
   if (!data?.success) {
+    const existingAfter = await findUserByPhone(phone);
+
+    if (existingAfter?.id) {
+      return existingAfter.id;
+    }
+
     throw new Error(
       `User registration failed: ${data?.message || "Unknown error"}`
     );
@@ -302,50 +322,129 @@ async function createUser(
 }
 
 async function findBookingByPhone(phone: string) {
-  const { data, error } = await supabase
-    .from("bookings")
-    .select(
-      `
-      id,
-      user_id,
-      service,
-      property_type,
-      property_size,
-      cleaning_type,
-      area,
-      address,
-      booking_date,
-      booking_time,
-      status,
-      notes,
-      customer_name,
-      customer_phone,
-      estimated_price
-      `
-    )
-    .eq("customer_phone", phone)
-    .neq("status", "cancelled")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const variants = phoneVariants(phone);
 
-  if (error) {
-    throw new Error(`Booking lookup error: ${error.message}`);
+  for (const variant of variants) {
+    const { data, error } = await supabase
+      .from("bookings")
+      .select(
+        `
+        id,
+        user_id,
+        service,
+        property_type,
+        property_size,
+        cleaning_type,
+        area,
+        address,
+        booking_date,
+        booking_time,
+        status,
+        notes,
+        customer_name,
+        customer_phone,
+        estimated_price
+        `
+      )
+      .eq("customer_phone", variant)
+      .neq("status", "cancelled")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Booking lookup error: ${error.message}`);
+    }
+
+    if (data) {
+      return data as BookingRow;
+    }
   }
 
-  return data as BookingRow | null;
+  return null;
 }
 
 function normalizePhone(phone: string) {
-  return phone.replace(/[^\d+]/g, "").replace(/^00/, "+");
+  const digits = phone.replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  if (digits.startsWith("00")) {
+    return `+${digits.slice(2)}`;
+  }
+
+  if (digits.startsWith("20")) {
+    return `+${digits}`;
+  }
+
+  if (digits.startsWith("0")) {
+    return `+20${digits.slice(1)}`;
+  }
+
+  return `+${digits}`;
 }
 
-function normalizeDate(value: string) {
-  return value.trim();
+function phoneVariants(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+  const variants = new Set<string>();
+
+  if (phone.trim()) {
+    variants.add(phone.trim());
+  }
+
+  if (digits) {
+    variants.add(digits);
+  }
+
+  if (digits.startsWith("20")) {
+    variants.add(`+${digits}`);
+    variants.add(`0${digits.slice(2)}`);
+  }
+
+  if (digits.startsWith("0")) {
+    variants.add(`+20${digits.slice(1)}`);
+    variants.add(`20${digits.slice(1)}`);
+  }
+
+  return [...variants];
 }
 
-function normalizeTime(value: string) {
-  return value.trim();
+function isValidPhone(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+  return digits.length >= 10 && digits.length <= 15;
+}
+
+function formatDateForDisplay(date?: string) {
+  if (!date) {
+    return "-";
+  }
+
+  const value = new Date(`${date}T12:00:00Z`);
+
+  return new Intl.DateTimeFormat("ar-EG", {
+    timeZone: "Africa/Cairo",
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(value);
+}
+
+function getCairoTodayUtc() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Africa/Cairo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const year = Number(parts.find((part) => part.type === "year")?.value);
+  const month = Number(parts.find((part) => part.type === "month")?.value);
+  const day = Number(parts.find((part) => part.type === "day")?.value);
+
+  return new Date(Date.UTC(year, month - 1, day));
 }
 
 async function startNewBooking(to: string) {
@@ -372,43 +471,28 @@ async function startExistingBooking(to: string) {
   );
 }
 
-async function showServiceOptions(to: string) {
-  await sendList(
-    to,
-    "🧹 اختر نوع الخدمة التي تريدها:",
-    "اختيار الخدمة",
-    [
-      {
-        title: "الخدمات",
-        rows: [
-          {
-            id: "service_home",
-            title: "تنظيف منازل",
-          },
-          {
-            id: "service_corporate",
-            title: "تنظيف شركات",
-          },
-          {
-            id: "service_carpet",
-            title: "تنظيف سجاد",
-          },
-          {
-            id: "service_sofa",
-            title: "تنظيف كنب",
-          },
-          {
-            id: "service_pest",
-            title: "مكافحة حشرات",
-          },
-          {
-            id: "service_other",
-            title: "أخرى",
-          },
-        ],
-      },
-    ]
-  );
+async function showServiceOptions(to: string, data: FlowData) {
+  await saveContact(to, {
+    flow_step: data.existingBooking
+      ? "existing_booking_service"
+      : "new_booking_service",
+    flow_data: data,
+  });
+
+  await sendButtons(to, "🧹 اختر الخدمة التي تريدها:", [
+    {
+      id: "service_apartment",
+      title: "🏠 تنظيف الشقق",
+    },
+    {
+      id: "service_malls",
+      title: "🏢 تنظيف المولات",
+    },
+    {
+      id: "service_commercial",
+      title: "🏪 المحلات التجارية",
+    },
+  ]);
 }
 
 async function askArea(to: string, step: string, data: FlowData) {
@@ -417,20 +501,16 @@ async function askArea(to: string, step: string, data: FlowData) {
     flow_data: data,
   });
 
-  await sendButtons(
-    to,
-    "📍 اختر المنطقة:",
-    [
-      {
-        id: "area_madinaty",
-        title: "مدينتي",
-      },
-      {
-        id: "area_shorouk",
-        title: "الشروق",
-      },
-    ]
-  );
+  await sendButtons(to, "📍 اختر المنطقة:", [
+    {
+      id: "area_madinaty",
+      title: "مدينتي",
+    },
+    {
+      id: "area_shorouk",
+      title: "الشروق",
+    },
+  ]);
 }
 
 async function askDate(to: string, data: FlowData) {
@@ -439,9 +519,36 @@ async function askDate(to: string, data: FlowData) {
     flow_data: data,
   });
 
-  await sendText(
+  const base = getCairoTodayUtc();
+  const rows = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(base);
+    date.setUTCDate(date.getUTCDate() + index + 1);
+
+    const iso = date.toISOString().slice(0, 10);
+    const title = new Intl.DateTimeFormat("ar-EG", {
+      timeZone: "Africa/Cairo",
+      weekday: "short",
+      day: "2-digit",
+      month: "2-digit",
+    }).format(date);
+
+    return {
+      id: `date_${iso}`,
+      title,
+      description: iso,
+    };
+  });
+
+  await sendList(
     to,
-    "📅 ما هو التاريخ المفضل للخدمة؟\n\nمثال: 15/09/2026"
+    "📅 اختر التاريخ المناسب للخدمة:",
+    "اختيار التاريخ",
+    [
+      {
+        title: "المواعيد المتاحة",
+        rows,
+      },
+    ]
   );
 }
 
@@ -451,9 +558,31 @@ async function askTime(to: string, data: FlowData) {
     flow_data: data,
   });
 
-  await sendText(
+  const rows = Array.from({ length: 8 }, (_, index) => {
+    const hour = index + 8;
+    const hour12 = hour > 12 ? hour - 12 : hour;
+    const period = hour < 12 ? "صباحًا" : "مساءً";
+    const hourText = String(hour12).padStart(2, "0");
+    const time24 = `${String(hour).padStart(2, "0")}:00`;
+    const time12 = `${hourText}:00 ${period}`;
+
+    return {
+      id: `time_${time24}`,
+      title: time12,
+      description: time24,
+    };
+  });
+
+  await sendList(
     to,
-    "🕐 ما هو الوقت المفضل؟\n\nساعات العمل من 08:00 صباحًا حتى 03:00 مساءً.\nمثال: 10:00 AM"
+    "🕐 اختر الوقت المناسب:\n\nساعات العمل من 08:00 صباحًا حتى 03:00 مساءً.",
+    "اختيار الوقت",
+    [
+      {
+        title: "أوقات العمل",
+        rows,
+      },
+    ]
   );
 }
 
@@ -472,17 +601,145 @@ async function askNotes(to: string, data: FlowData) {
     flow_data: data,
   });
 
-  await sendButtons(
+  await sendButtons(to, "📝 هل لديك أي ملاحظات إضافية؟", [
+    {
+      id: "notes_none",
+      title: "لا يوجد",
+    },
+    {
+      id: "notes_write",
+      title: "نعم، سأكتبها",
+    },
+  ]);
+}
+
+function propertyTypeLabel(propertyType?: string) {
+  return propertyType === "Apartment" ? "شقة" : propertyType || "-";
+}
+
+function propertySizeLabel(size?: string) {
+  const labels: Record<string, string> = {
+    "Under 70 m²": "أقل من 70 م²",
+    "70–100 m²": "70–100 م²",
+    "100–150 m²": "100–150 م²",
+    "150–200 m²": "150–200 م²",
+    "200+ m²": "أكثر من 200 م²",
+  };
+
+  return labels[size || ""] || size || "-";
+}
+
+function cleaningTypeLabel(type?: string) {
+  const labels: Record<string, string> = {
+    "Regular Cleaning": "تنظيف عادي",
+    "Deep Cleaning": "تنظيف عميق",
+    "Post-Construction Cleaning": "تنظيف بعد الإنشاء",
+  };
+
+  return labels[type || ""] || type || "-";
+}
+
+function calculateApartmentPrice(
+  propertySize?: string,
+  cleaningType?: string
+): number | null {
+  if (!propertySize || !cleaningType) {
+    return null;
+  }
+
+  const size = propertySize as keyof typeof PRICES.Apartment;
+  const cleaning = cleaningType as keyof (typeof PRICES.Apartment)[keyof typeof PRICES.Apartment];
+
+  return PRICES.Apartment[size]?.[cleaning] ?? null;
+}
+
+async function showPropertyTypeOptions(to: string, data: FlowData) {
+  await saveContact(to, {
+    flow_step: data.existingBooking
+      ? "existing_booking_property_type"
+      : "new_booking_property_type",
+    flow_data: data,
+  });
+
+  await sendButtons(to, "🏠 اختر نوع العقار:", [
+    {
+      id: "property_apartment",
+      title: "🏠 شقة",
+    },
+  ]);
+}
+
+async function showPropertySizeOptions(to: string, data: FlowData) {
+  await saveContact(to, {
+    flow_step: data.existingBooking
+      ? "existing_booking_property_size"
+      : "new_booking_property_size",
+    flow_data: data,
+  });
+
+  await sendList(
     to,
-    "📝 هل لديك أي ملاحظات إضافية؟",
+    "📐 اختر مساحة الشقة:",
+    "اختيار المساحة",
     [
       {
-        id: "notes_none",
-        title: "لا يوجد",
+        title: "المساحة",
+        rows: [
+          {
+            id: "size_under_70",
+            title: "أقل من 70 م²",
+          },
+          {
+            id: "size_70_100",
+            title: "70–100 م²",
+          },
+          {
+            id: "size_100_150",
+            title: "100–150 م²",
+          },
+          {
+            id: "size_150_200",
+            title: "150–200 م²",
+          },
+          {
+            id: "size_200_plus",
+            title: "أكثر من 200 م²",
+          },
+        ],
       },
+    ]
+  );
+}
+
+async function showCleaningTypeOptions(to: string, data: FlowData) {
+  await saveContact(to, {
+    flow_step: data.existingBooking
+      ? "existing_booking_cleaning_type"
+      : "new_booking_cleaning_type",
+    flow_data: data,
+  });
+
+  await sendList(
+    to,
+    "🧹 اختر نوع التنظيف:",
+    "اختيار التنظيف",
+    [
       {
-        id: "notes_write",
-        title: "نعم، سأكتبها",
+        title: "نوع التنظيف",
+        rows: [
+          {
+            id: "clean_regular",
+            title: "تنظيف عادي",
+          },
+          {
+            id: "clean_deep",
+            title: "تنظيف عميق",
+          },
+          {
+            id: "clean_post",
+            title: "بعد الإنشاء",
+          },
+        ],
       },
     ]
   );
@@ -490,19 +747,44 @@ async function askNotes(to: string, data: FlowData) {
 
 function serviceLabel(service?: string) {
   const labels: Record<string, string> = {
-    service_home: "تنظيف منازل",
-    service_corporate: "تنظيف شركات",
-    service_carpet: "تنظيف سجاد",
-    service_sofa: "تنظيف كنب",
-    service_pest: "مكافحة حشرات",
-    service_other: "أخرى",
+    service_apartment: "Residential Cleaning",
+    service_malls: "Mall Services",
+    service_commercial: "Corporate Cleaning",
+    "Apartment Cleaning": "Residential Cleaning",
+    "Residential Cleaning": "Residential Cleaning",
+  };
+
+  return labels[service || ""] || service || "-";
+}
+
+function serviceDisplayLabel(service?: string) {
+  const labels: Record<string, string> = {
+    service_apartment: "تنظيف الشقق",
+    "Apartment Cleaning": "تنظيف الشقق",
+    "Residential Cleaning": "تنظيف الشقق",
+    service_malls: "تنظيف المولات",
+    "Mall Services": "تنظيف المولات",
+    service_commercial: "المحلات التجارية",
+    "Corporate Cleaning": "المحلات التجارية",
   };
 
   return labels[service || ""] || service || "-";
 }
 
 function areaLabel(area?: string) {
-  return area === "El Shorouk" ? "الشروق" : area === "Madinaty" ? "مدينتي" : area || "-";
+  return area === "El Shorouk"
+    ? "الشروق"
+    : area === "Madinaty"
+      ? "مدينتي"
+      : area || "-";
+}
+
+function formatPrice(price?: number | null) {
+  if (price == null) {
+    return "سيتم تحديده من فريق العمل";
+  }
+
+  return `${price.toLocaleString("en-US")} جنيه`;
 }
 
 function buildSummary(data: FlowData) {
@@ -510,10 +792,14 @@ function buildSummary(data: FlowData) {
     "📋 *ملخص طلبك*\n\n" +
     `👤 الاسم: ${data.name || "-"}\n` +
     `📞 الهاتف: ${data.phone || "-"}\n` +
-    `📍 المنطقة: ${areaLabel(data.area)}\n` +
-    `🧹 الخدمة: ${serviceLabel(data.service)}\n` +
-    `📅 التاريخ: ${data.date || "-"}\n` +
+    `🧹 الخدمة: ${serviceDisplayLabel(data.service)}\n` +
+    `🏠 نوع العقار: ${propertyTypeLabel(data.propertyType)}\n` +
+    `📐 المساحة: ${propertySizeLabel(data.propertySize)}\n` +
+    `🧽 نوع التنظيف: ${cleaningTypeLabel(data.cleaningType)}\n` +
+    `💰 السعر التقديري: ${formatPrice(data.estimatedPrice)}\n` +
+    `📅 التاريخ: ${formatDateForDisplay(data.date)}\n` +
     `🕐 الوقت: ${data.time || "-"}\n` +
+    `📍 المنطقة: ${areaLabel(data.area)}\n` +
     `🏠 العنوان: ${data.address || "-"}\n` +
     `📝 الملاحظات: ${data.notes || "لا يوجد"}\n\n` +
     "هل تريد تأكيد الطلب؟"
@@ -539,17 +825,42 @@ async function showSummary(to: string, data: FlowData) {
 }
 
 async function createBookingFromFlow(to: string, data: FlowData) {
-  if (!data.name || !data.phone || !data.service || !data.userId) {
+  if (
+    !data.name ||
+    !data.phone ||
+    !data.service ||
+    !data.area ||
+    !data.date ||
+    !data.time ||
+    !data.address ||
+    !data.propertyType ||
+    !data.propertySize ||
+    !data.cleaningType ||
+    data.estimatedPrice == null
+  ) {
     throw new Error("Incomplete booking data");
   }
 
+  let userId = data.userId;
+
+  if (!userId) {
+    const existingUser = await findUserByPhone(data.phone);
+    userId =
+      existingUser?.id ||
+      (await createUser(data.name, data.phone));
+  }
+
   const { error } = await supabase.from("bookings").insert({
-    user_id: data.userId,
+    user_id: userId,
     service: serviceLabel(data.service),
-    area: data.area || null,
-    address: data.address || null,
-    booking_date: data.date || null,
-    booking_time: data.time || null,
+    property_type: data.propertyType,
+    property_size: data.propertySize,
+    cleaning_type: data.cleaningType,
+    area: data.area,
+    address: data.address,
+    booking_date: data.date,
+    booking_time: data.time,
+    estimated_price: data.estimatedPrice,
     notes: data.notes || null,
     customer_name: data.name,
     customer_phone: data.phone,
@@ -563,7 +874,10 @@ async function createBookingFromFlow(to: string, data: FlowData) {
 
   await saveContact(to, {
     flow_step: "completed",
-    flow_data: data,
+    flow_data: {
+      ...data,
+      userId,
+    },
   });
 
   await sendText(
@@ -583,10 +897,14 @@ async function updateExistingBooking(to: string, data: FlowData) {
     .from("bookings")
     .update({
       service: serviceLabel(data.service),
+      property_type: data.propertyType || null,
+      property_size: data.propertySize || null,
+      cleaning_type: data.cleaningType || null,
       area: data.area || null,
       address: data.address || null,
       booking_date: data.date || null,
       booking_time: data.time || null,
+      estimated_price: data.estimatedPrice ?? null,
       notes: data.notes || null,
       customer_name: data.name || null,
       customer_phone: data.phone || null,
@@ -626,9 +944,45 @@ async function handleButton(
     return;
   }
 
+  if (
+    buttonId === "service_malls" ||
+    buttonId === "service_commercial"
+  ) {
+    await saveContact(to, {
+      flow_step: "team_contact",
+      flow_data: {
+        ...data,
+        service:
+          buttonId === "service_malls"
+            ? "Mall Services"
+            : "Corporate Cleaning",
+      },
+    });
+
+    await sendText(
+      to,
+      "شكرًا لاختيارك A to Z Cleaning Services 🌿\n\n" +
+        "هذه الخدمة يتم تنسيقها مباشرة مع فريق العمل المختص.\n\n" +
+        "📞 يرجى التواصل معنا على:\n" +
+        "00201214290073"
+    );
+
+    return;
+  }
+
+  if (buttonId === "service_apartment") {
+    await showPropertyTypeOptions(to, {
+      ...data,
+      service: "Residential Cleaning",
+    });
+    return;
+  }
+
   if (buttonId === "area_madinaty" || buttonId === "area_shorouk") {
     const area =
-      buttonId === "area_madinaty" ? "Madinaty" : "El Shorouk";
+      buttonId === "area_madinaty"
+        ? "Madinaty"
+        : "El Shorouk";
 
     const nextData = {
       ...data,
@@ -636,33 +990,32 @@ async function handleButton(
     };
 
     if (contact.flow_step === "existing_booking_area") {
-      await showServiceOptions(to);
-
-      await saveContact(to, {
-        flow_step: "existing_booking_service",
-        flow_data: nextData,
-      });
-
+      await showServiceOptions(to, nextData);
       return;
     }
 
-    await showServiceOptions(to);
+    await askAddress(to, nextData);
+    return;
+  }
 
-    await saveContact(to, {
-      flow_step: "new_booking_service",
-      flow_data: nextData,
+  if (buttonId === "property_apartment") {
+    await showPropertySizeOptions(to, {
+      ...data,
+      propertyType: "Apartment",
     });
+    return;
+  }
 
+  if (buttonId === "price_continue") {
+    await askDate(to, data);
     return;
   }
 
   if (buttonId === "notes_none") {
-    const nextData = {
+    await showSummary(to, {
       ...data,
       notes: "لا يوجد",
-    };
-
-    await showSummary(to, nextData);
+    });
     return;
   }
 
@@ -677,7 +1030,7 @@ async function handleButton(
   }
 
   if (buttonId === "confirm_booking") {
-    if (contact.flow_step === "existing_booking_confirmation") {
+    if (data.existingBooking) {
       await updateExistingBooking(to, data);
     } else {
       await createBookingFromFlow(to, data);
@@ -694,7 +1047,8 @@ async function handleButton(
 
     await sendText(
       to,
-      "تم إلغاء الطلب. 👍\n\nإذا أردت البدء من جديد، أرسل أي رسالة."
+      "تم إلغاء الطلب. 👍\n\n" +
+        "إذا أردت البدء من جديد، اختر حجز جديد من القائمة."
     );
 
     return;
@@ -712,16 +1066,146 @@ async function handleListReply(
   contact: ContactRow
 ) {
   const data: FlowData = contact.flow_data || {};
+  const step = contact.flow_step;
 
-  if (replyId.startsWith("service_")) {
-    const nextData = {
-      ...data,
-      service: replyId,
+  if (step === "new_booking_property_size" || step === "existing_booking_property_size") {
+    const sizeMap: Record<string, string> = {
+      size_under_70: "Under 70 m²",
+      size_70_100: "70–100 m²",
+      size_100_150: "100–150 m²",
+      size_150_200: "150–200 m²",
+      size_200_plus: "200+ m²",
     };
 
-    await askDate(to, nextData);
+    const propertySize = sizeMap[replyId];
+
+    if (!propertySize) {
+      await sendText(to, "يرجى اختيار المساحة من القائمة.");
+      return;
+    }
+
+    await showCleaningTypeOptions(to, {
+      ...data,
+      propertySize,
+    });
+
     return;
   }
+
+  if (
+    step === "new_booking_cleaning_type" ||
+    step === "existing_booking_cleaning_type"
+  ) {
+    const cleaningMap: Record<string, string> = {
+      clean_regular: "Regular Cleaning",
+      clean_deep: "Deep Cleaning",
+      clean_post: "Post-Construction Cleaning",
+    };
+
+    const cleaningType = cleaningMap[replyId];
+
+    if (!cleaningType) {
+      await sendText(to, "يرجى اختيار نوع التنظيف من القائمة.");
+      return;
+    }
+
+    const estimatedPrice = calculateApartmentPrice(
+      data.propertySize,
+      cleaningType
+    );
+
+    const nextData = {
+      ...data,
+      propertyType: "Apartment",
+      propertySize: data.propertySize,
+      cleaningType,
+      estimatedPrice,
+    };
+
+    await saveContact(to, {
+      flow_step: estimatedPrice == null ? "team_contact" : "price_review",
+      flow_data: nextData,
+    });
+
+    if (estimatedPrice == null) {
+      await sendText(
+        to,
+        "📐 للمساحات التي تتجاوز 200 م²، السعر لا يظهر تلقائيًا.\n\n" +
+          "سيتواصل معك فريق العمل لتحديد السعر المناسب.\n\n" +
+          "📞 00201214290073"
+      );
+      return;
+    }
+
+    await sendButtons(
+      to,
+      "💰 السعر التقديري حسب اختياراتك:\n\n" +
+        `🏠 المساحة: ${propertySizeLabel(nextData.propertySize)}\n` +
+        `🧽 نوع التنظيف: ${cleaningTypeLabel(nextData.cleaningType)}\n` +
+        `💰 السعر: ${formatPrice(estimatedPrice)}\n\n` +
+        "إذا كان مناسبًا لك، تابع لاختيار التاريخ والوقت.",
+      [
+        {
+          id: "price_continue",
+          title: "✅ متابعة",
+        },
+        {
+          id: "cancel_booking",
+          title: "❌ إلغاء",
+        },
+      ]
+    );
+
+    return;
+  }
+
+  if (step === "booking_date") {
+    if (!replyId.startsWith("date_")) {
+      await sendText(to, "يرجى اختيار التاريخ من القائمة.");
+      return;
+    }
+
+    const date = replyId.replace("date_", "");
+
+    await askTime(to, {
+      ...data,
+      date,
+    });
+
+    return;
+  }
+
+  if (step === "booking_time") {
+    if (!replyId.startsWith("time_")) {
+      await sendText(to, "يرجى اختيار الوقت من القائمة.");
+      return;
+    }
+
+    const time24 = replyId.replace("time_", "");
+    const [hourText] = time24.split(":");
+    const hour = Number(hourText);
+    const hour12 = hour > 12 ? hour - 12 : hour;
+    const period = hour < 12 ? "AM" : "PM";
+    const time = `${String(hour12).padStart(2, "0")}:00 ${period}`;
+
+    const nextData = {
+      ...data,
+      time,
+    };
+
+    if (data.existingBooking) {
+      await askAddress(to, nextData);
+    } else {
+      await askArea(to, "new_booking_area", nextData);
+    }
+
+    return;
+  }
+
+  await sendText(
+    to,
+    "يرجى اختيار أحد الخيارات الظاهرة أمامك."
+  );
 }
 
 async function handleText(
@@ -733,14 +1217,19 @@ async function handleText(
   const data: FlowData = contact.flow_data || {};
 
   if (step === "new_booking_name") {
-    const nextData = {
-      ...data,
-      name: text.trim(),
-    };
+    const name = text.trim();
+
+    if (!name) {
+      await sendText(to, "👤 اكتب اسمك الكامل من فضلك:");
+      return;
+    }
 
     await saveContact(to, {
       flow_step: "new_booking_phone",
-      flow_data: nextData,
+      flow_data: {
+        ...data,
+        name,
+      },
     });
 
     await sendText(
@@ -754,24 +1243,17 @@ async function handleText(
   if (step === "new_booking_phone") {
     const phone = normalizePhone(text);
 
-    const existingUser = await findUserByPhone(phone);
-
-    const nextData = {
-      ...data,
-      phone,
-      userId: existingUser?.id,
-    };
-
-    if (existingUser?.id) {
-      await askArea(to, "new_booking_area", nextData);
+    if (!isValidPhone(phone)) {
+      await sendText(
+        to,
+        "📞 يبدو أن رقم الهاتف غير صحيح.\n\nأرسل رقم الهاتف مرة أخرى، مثل: 01012345678"
+      );
       return;
     }
 
-    const userId = await createUser(data.name || "", phone);
-
-    await askArea(to, "new_booking_area", {
-      ...nextData,
-      userId,
+    await showServiceOptions(to, {
+      ...data,
+      phone,
     });
 
     return;
@@ -779,6 +1261,15 @@ async function handleText(
 
   if (step === "existing_booking_phone") {
     const phone = normalizePhone(text);
+
+    if (!isValidPhone(phone)) {
+      await sendText(
+        to,
+        "📞 أرسل رقم الهاتف المستخدم عند الحجز بشكل صحيح:"
+      );
+      return;
+    }
+
     const booking = await findBookingByPhone(phone);
 
     if (!booking) {
@@ -813,79 +1304,79 @@ async function handleText(
       userId: booking.user_id,
       phone,
       name: booking.customer_name || undefined,
-      service: booking.service || undefined,
+      service: booking.service || "Residential Cleaning",
       area: booking.area || undefined,
       address: booking.address || undefined,
       date: booking.booking_date || undefined,
       time: booking.booking_time || undefined,
       notes: booking.notes || undefined,
+      propertyType: booking.property_type || undefined,
+      propertySize: booking.property_size || undefined,
+      cleaningType: booking.cleaning_type || undefined,
+      estimatedPrice: booking.estimated_price ?? null,
+      existingBooking: true,
     };
 
     await saveContact(to, {
-      flow_step: "existing_booking_found",
+      flow_step: "existing_booking_area",
       flow_data: nextData,
     });
 
-    await sendButtons(
+    await sendText(
       to,
       "✅ وجدنا حجزك بنجاح.\n\n" +
-        `🧹 الخدمة: ${booking.service || "-"}\n` +
-        `📍 المنطقة: ${areaLabel(booking.area || undefined)}\n` +
-        `📅 التاريخ: ${booking.booking_date || "-"}\n` +
-        `🕐 الوقت: ${booking.booking_time || "-"}\n\n` +
-        "هل تريد متابعة هذا الحجز وتحديث بياناته؟",
-      [
-        {
-          id: "existing_booking_use",
-          title: "✅ متابعة",
-        },
-        {
-          id: "cancel_booking",
-          title: "❌ إلغاء",
-        },
-      ]
+        `🧹 الخدمة الحالية: ${serviceDisplayLabel(booking.service || undefined)}\n` +
+        `📍 المنطقة الحالية: ${areaLabel(booking.area || undefined)}\n` +
+        `📅 التاريخ الحالي: ${formatDateForDisplay(booking.booking_date || undefined)}\n` +
+        `🕐 الوقت الحالي: ${booking.booking_time || "-"}\n\n` +
+        "اختر المنطقة التي تريد اعتمادها للحجز:"
     );
 
+    await askArea(to, "existing_booking_area", nextData);
     return;
   }
 
-  if (step === "booking_date") {
-    const nextData = {
-      ...data,
-      date: normalizeDate(text),
-    };
-
-    await askTime(to, nextData);
-    return;
-  }
-
-  if (step === "booking_time") {
-    const nextData = {
-      ...data,
-      time: normalizeTime(text),
-    };
-
-    await askAddress(to, nextData);
+  if (
+    step === "new_booking_property_type" ||
+    step === "new_booking_property_size" ||
+    step === "new_booking_cleaning_type" ||
+    step === "existing_booking_property_type" ||
+    step === "existing_booking_property_size" ||
+    step === "existing_booking_cleaning_type" ||
+    step === "booking_date" ||
+    step === "booking_time" ||
+    step === "new_booking_area" ||
+    step === "existing_booking_area" ||
+    step === "price_review"
+  ) {
+    await sendText(
+      to,
+      "يرجى استخدام الخيارات الظاهرة أمامك في المحادثة."
+    );
     return;
   }
 
   if (step === "booking_address") {
-    const nextData = {
-      ...data,
-      address: text.trim(),
-    };
+    const address = text.trim();
 
-    await askNotes(to, nextData);
+    if (!address) {
+      await sendText(to, "🏠 اكتب عنوان الخدمة بالتفصيل من فضلك:");
+      return;
+    }
+
+    await askNotes(to, {
+      ...data,
+      address,
+    });
+
     return;
   }
 
   if (step === "booking_notes_text") {
-    const nextData = {
+    await showSummary(to, {
       ...data,
-      notes: text.trim(),
-    };
-
-    await showSummary(to, nextData);
+      notes: text.trim() || "لا يوجد",
+    });
     return;
   }
 
@@ -893,13 +1384,19 @@ async function handleText(
     step === "welcome" ||
     step === "completed" ||
     step === "cancelled" ||
-    step === "no_booking_found"
+    step === "no_booking_found" ||
+    step === "team_contact"
   ) {
-    await sendText(
-      to,
-      "👋 إذا كنت تريد حجز خدمة، أرسل أي رسالة وسأساعدك بالخطوات."
-    );
-
+    await sendButtons(to, "👋 اختر ماذا تريد أن تفعل:", [
+      {
+        id: "new_booking",
+        title: "🆕 حجز جديد",
+      },
+      {
+        id: "already_booked",
+        title: "✅ لدي حجز",
+      },
+    ]);
     return;
   }
 
