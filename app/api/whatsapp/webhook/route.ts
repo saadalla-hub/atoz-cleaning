@@ -554,32 +554,63 @@ async function askDate(to: string, data: FlowData) {
 
 async function askTime(to: string, data: FlowData) {
   await saveContact(to, {
+    flow_step: "booking_time_period",
+    flow_data: data,
+  });
+
+  await sendButtons(to, "🕐 اختر الفترة المناسبة:", [
+    {
+      id: "time_period_morning",
+      title: "🌅 09:00–12:30",
+    },
+    {
+      id: "time_period_afternoon",
+      title: "☀️ 01:00–03:00",
+    },
+  ]);
+}
+
+async function showTimeOptions(
+  to: string,
+  data: FlowData,
+  period: "morning" | "afternoon"
+) {
+  await saveContact(to, {
     flow_step: "booking_time",
     flow_data: data,
   });
 
-  const rows = Array.from({ length: 8 }, (_, index) => {
-    const hour = index + 8;
-    const hour12 = hour > 12 ? hour - 12 : hour;
-    const period = hour < 12 ? "صباحًا" : "مساءً";
-    const hourText = String(hour12).padStart(2, "0");
-    const time24 = `${String(hour).padStart(2, "0")}:00`;
-    const time12 = `${hourText}:00 ${period}`;
+  const hours =
+    period === "morning"
+      ? [9, 10, 11, 12]
+      : [13, 14, 15];
 
-    return {
-      id: `time_${time24}`,
-      title: time12,
-      description: time24,
-    };
+  const rows = hours.flatMap((hour) => {
+    const values = [0, 30].filter(
+      (minute) => !(hour === 15 && minute === 30)
+    );
+
+    return values.map((minute) => {
+      const hour12 = hour > 12 ? hour - 12 : hour;
+      const periodLabel = hour < 12 ? "صباحًا" : "مساءً";
+      const time24 = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+      const time12 = `${String(hour12).padStart(2, "0")}:${String(minute).padStart(2, "0")} ${periodLabel}`;
+
+      return {
+        id: `time_${time24}`,
+        title: time12,
+        description: time24,
+      };
+    });
   });
 
   await sendList(
     to,
-    "🕐 اختر الوقت المناسب:\n\nساعات العمل من 08:00 صباحًا حتى 03:00 مساءً.",
+    "🕐 اختر الوقت المناسب:",
     "اختيار الوقت",
     [
       {
-        title: "أوقات العمل",
+        title: "المواعيد",
         rows,
       },
     ]
@@ -592,7 +623,7 @@ async function askAddress(to: string, data: FlowData) {
     flow_data: data,
   });
 
-  await sendText(to, "🏠 اكتب عنوان الخدمة بالتفصيل من فضلك:");
+  await sendText(to, "🏠 اكتب عنوان الشقة المراد تنظيفها بالتفصيل من فضلك:");
 }
 
 async function askNotes(to: string, data: FlowData) {
@@ -614,7 +645,14 @@ async function askNotes(to: string, data: FlowData) {
 }
 
 function propertyTypeLabel(propertyType?: string) {
-  return propertyType === "Apartment" ? "شقة" : propertyType || "-";
+  const labels: Record<string, string> = {
+    Apartment: "شقة",
+    Villa: "فيلا",
+    Shop: "متجر",
+    Cafe: "كافيه",
+  };
+
+  return labels[propertyType || ""] || propertyType || "-";
 }
 
 function propertySizeLabel(size?: string) {
@@ -639,18 +677,26 @@ function cleaningTypeLabel(type?: string) {
   return labels[type || ""] || type || "-";
 }
 
-function calculateApartmentPrice(
+function calculatePropertyPrice(
+  propertyType?: string,
   propertySize?: string,
   cleaningType?: string
 ): number | null {
-  if (!propertySize || !cleaningType) {
+  if (!propertyType || !propertySize || !cleaningType) {
     return null;
   }
 
-  const size = propertySize as keyof typeof PRICES.Apartment;
-  const cleaning = cleaningType as keyof (typeof PRICES.Apartment)[keyof typeof PRICES.Apartment];
+  const typePrices = PRICES[propertyType as keyof typeof PRICES];
+  if (!typePrices) {
+    return null;
+  }
 
-  return PRICES.Apartment[size]?.[cleaning] ?? null;
+  const sizePrices = typePrices[propertySize as keyof typeof typePrices];
+  if (!sizePrices) {
+    return null;
+  }
+
+  return sizePrices[cleaningType as keyof typeof sizePrices] ?? null;
 }
 
 async function showPropertyTypeOptions(to: string, data: FlowData) {
@@ -661,12 +707,34 @@ async function showPropertyTypeOptions(to: string, data: FlowData) {
     flow_data: data,
   });
 
-  await sendButtons(to, "🏠 اختر نوع العقار:", [
-    {
-      id: "property_apartment",
-      title: "🏠 شقة",
-    },
-  ]);
+  await sendList(
+    to,
+    "🏠 اختر نوع العقار:",
+    "اختيار العقار",
+    [
+      {
+        title: "نوع العقار",
+        rows: [
+          {
+            id: "property_apartment",
+            title: "🏠 شقة",
+          },
+          {
+            id: "property_villa",
+            title: "🏡 فيلا",
+          },
+          {
+            id: "property_shop",
+            title: "🏪 متجر",
+          },
+          {
+            id: "property_cafe",
+            title: "☕ كافيه",
+          },
+        ],
+      },
+    ]
+  );
 }
 
 async function showPropertySizeOptions(to: string, data: FlowData) {
@@ -679,7 +747,7 @@ async function showPropertySizeOptions(to: string, data: FlowData) {
 
   await sendList(
     to,
-    "📐 اختر مساحة الشقة:",
+    "📐 اختر مساحة العقار:",
     "اختيار المساحة",
     [
       {
@@ -800,7 +868,7 @@ function buildSummary(data: FlowData) {
     `📅 التاريخ: ${formatDateForDisplay(data.date)}\n` +
     `🕐 الوقت: ${data.time || "-"}\n` +
     `📍 المنطقة: ${areaLabel(data.area)}\n` +
-    `🏠 العنوان: ${data.address || "-"}\n` +
+    `🏠 عنوان الشقة المراد تنظيفها: ${data.address || "-"}\n` +
     `📝 الملاحظات: ${data.notes || "لا يوجد"}\n\n` +
     "هل تريد تأكيد الطلب؟"
   );
@@ -998,11 +1066,15 @@ async function handleButton(
     return;
   }
 
-  if (buttonId === "property_apartment") {
-    await showPropertySizeOptions(to, {
-      ...data,
-      propertyType: "Apartment",
-    });
+  if (
+    buttonId === "time_period_morning" ||
+    buttonId === "time_period_afternoon"
+  ) {
+    await showTimeOptions(
+      to,
+      data,
+      buttonId === "time_period_morning" ? "morning" : "afternoon"
+    );
     return;
   }
 
@@ -1068,6 +1140,32 @@ async function handleListReply(
   const data: FlowData = contact.flow_data || {};
   const step = contact.flow_step;
 
+  if (
+    step === "new_booking_property_type" ||
+    step === "existing_booking_property_type"
+  ) {
+    const propertyTypeMap: Record<string, string> = {
+      property_apartment: "Apartment",
+      property_villa: "Villa",
+      property_shop: "Shop",
+      property_cafe: "Cafe",
+    };
+
+    const propertyType = propertyTypeMap[replyId];
+
+    if (!propertyType) {
+      await sendText(to, "يرجى اختيار نوع العقار من القائمة.");
+      return;
+    }
+
+    await showPropertySizeOptions(to, {
+      ...data,
+      propertyType,
+    });
+
+    return;
+  }
+
   if (step === "new_booking_property_size" || step === "existing_booking_property_size") {
     const sizeMap: Record<string, string> = {
       size_under_70: "Under 70 m²",
@@ -1109,7 +1207,8 @@ async function handleListReply(
       return;
     }
 
-    const estimatedPrice = calculateApartmentPrice(
+    const estimatedPrice = calculatePropertyPrice(
+      data.propertyType,
       data.propertySize,
       cleaningType
     );
@@ -1322,16 +1421,6 @@ async function handleText(
       flow_data: nextData,
     });
 
-    await sendText(
-      to,
-      "✅ وجدنا حجزك بنجاح.\n\n" +
-        `🧹 الخدمة الحالية: ${serviceDisplayLabel(booking.service || undefined)}\n` +
-        `📍 المنطقة الحالية: ${areaLabel(booking.area || undefined)}\n` +
-        `📅 التاريخ الحالي: ${formatDateForDisplay(booking.booking_date || undefined)}\n` +
-        `🕐 الوقت الحالي: ${booking.booking_time || "-"}\n\n` +
-        "اختر المنطقة التي تريد اعتمادها للحجز:"
-    );
-
     await askArea(to, "existing_booking_area", nextData);
     return;
   }
@@ -1344,6 +1433,7 @@ async function handleText(
     step === "existing_booking_property_size" ||
     step === "existing_booking_cleaning_type" ||
     step === "booking_date" ||
+    step === "booking_time_period" ||
     step === "booking_time" ||
     step === "new_booking_area" ||
     step === "existing_booking_area" ||
@@ -1360,7 +1450,7 @@ async function handleText(
     const address = text.trim();
 
     if (!address) {
-      await sendText(to, "🏠 اكتب عنوان الخدمة بالتفصيل من فضلك:");
+      await sendText(to, "🏠 اكتب عنوان الشقة المراد تنظيفها بالتفصيل من فضلك:");
       return;
     }
 
