@@ -30,7 +30,7 @@ async function sendWhatsAppWelcome(to: string) {
   }
 
   const imageUrl =
-    "https://www.atozcleaningservices.com/images/whatsapp/welcome.png";
+    "https://atoz-cleaning-6tahy444p-saadodunia-1178s-projects.vercel.app/images/whatsapp/welcome.png";
 
   // 1. Send welcome image
   const imageResponse = await fetch(
