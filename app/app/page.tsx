@@ -148,28 +148,32 @@ export default function AppComingSoonPage() {
 
           </div>
 
-          {/* Final Message */}
-          <div className="mx-auto mt-8 max-w-xl rounded-2xl border border-[#E7B548]/20 bg-[#E7B548]/[0.06] px-5 py-4">
-            <p className="text-sm font-semibold text-[#E7B548]">
-              Stay Tuned — We’ll Be Launching Soon
+          {/* Website Booking Message */}
+          <div className="mx-auto mt-8 max-w-xl rounded-2xl border border-[#E7B548]/20 bg-[#E7B548]/[0.06] px-5 py-5">
+
+            <p className="text-sm font-semibold leading-6 text-white/80">
+              Can’t wait for the app? You can still book your cleaning
+              service today through our website.
             </p>
 
             <p
-              className="mt-2 text-sm font-semibold text-[#E7B548]"
+              className="mt-3 text-sm font-semibold leading-7 text-white/80"
               dir="rtl"
               style={{ fontFamily: "Arial, Tahoma, sans-serif" }}
             >
-              ترقبونا — سيتم إطلاق التطبيق قريباً
+              لا تريد الانتظار حتى إطلاق التطبيق؟ يمكنك حجز خدمة التنظيف الآن
+              عبر موقعنا الإلكتروني.
             </p>
+
           </div>
 
-          {/* Back to Website */}
+          {/* Create Account */}
           <div className="mt-9">
             <Link
-              href="/"
+              href="/register"
               className="inline-flex items-center justify-center rounded-full bg-[#E7B548] px-8 py-3.5 font-bold text-[#0F2B34] transition hover:bg-[#D4A63A]"
             >
-              Back to Website
+              Create Account
             </Link>
           </div>
 
