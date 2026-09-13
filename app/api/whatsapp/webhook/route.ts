@@ -472,27 +472,10 @@ async function startExistingBooking(to: string) {
 }
 
 async function showServiceOptions(to: string, data: FlowData) {
-  await saveContact(to, {
-    flow_step: data.existingBooking
-      ? "existing_booking_service"
-      : "new_booking_service",
-    flow_data: data,
+  await showPropertyTypeOptions(to, {
+    ...data,
+    service: data.service || "Residential Cleaning",
   });
-
-  await sendButtons(to, "🧹 اختر الخدمة التي تريدها:", [
-    {
-      id: "service_apartment",
-      title: "🏠 تنظيف الشقق",
-    },
-    {
-      id: "service_malls",
-      title: "🏢 تنظيف المولات",
-    },
-    {
-      id: "service_commercial",
-      title: "🏪 المحلات التجارية",
-    },
-  ]);
 }
 
 async function askArea(to: string, step: string, data: FlowData) {
@@ -520,9 +503,16 @@ async function askDate(to: string, data: FlowData) {
   });
 
   const base = getCairoTodayUtc();
-  const rows = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(base);
-    date.setUTCDate(date.getUTCDate() + index + 1);
+  const rows = [];
+  const date = new Date(base);
+
+  while (rows.length < 7) {
+    date.setUTCDate(date.getUTCDate() + 1);
+
+    // Friday is the weekly day off.
+    if (date.getUTCDay() === 5) {
+      continue;
+    }
 
     const iso = date.toISOString().slice(0, 10);
     const title = new Intl.DateTimeFormat("ar-EG", {
@@ -532,12 +522,12 @@ async function askDate(to: string, data: FlowData) {
       month: "2-digit",
     }).format(date);
 
-    return {
+    rows.push({
       id: `date_${iso}`,
       title,
       description: iso,
-    };
-  });
+    });
+  }
 
   await sendList(
     to,
@@ -554,59 +544,28 @@ async function askDate(to: string, data: FlowData) {
 
 async function askTime(to: string, data: FlowData) {
   await saveContact(to, {
-    flow_step: "booking_time_period",
-    flow_data: data,
-  });
-
-  await sendButtons(to, "🕐 اختر الفترة المناسبة:", [
-    {
-      id: "time_period_morning",
-      title: "🌅 09:00–12:30",
-    },
-    {
-      id: "time_period_afternoon",
-      title: "☀️ 01:00–03:00",
-    },
-  ]);
-}
-
-async function showTimeOptions(
-  to: string,
-  data: FlowData,
-  period: "morning" | "afternoon"
-) {
-  await saveContact(to, {
     flow_step: "booking_time",
     flow_data: data,
   });
 
-  const hours =
-    period === "morning"
-      ? [9, 10, 11, 12]
-      : [13, 14, 15];
+  const hours = [9, 10, 11, 12, 13, 14, 15];
 
-  const rows = hours.flatMap((hour) => {
-    const values = [0, 30].filter(
-      (minute) => !(hour === 15 && minute === 30)
-    );
+  const rows = hours.map((hour) => {
+    const hour12 = hour > 12 ? hour - 12 : hour;
+    const periodLabel = hour < 12 ? "صباحًا" : "مساءً";
+    const time24 = `${String(hour).padStart(2, "0")}:00`;
+    const time12 = `${String(hour12).padStart(2, "0")}:00 ${periodLabel}`;
 
-    return values.map((minute) => {
-      const hour12 = hour > 12 ? hour - 12 : hour;
-      const periodLabel = hour < 12 ? "صباحًا" : "مساءً";
-      const time24 = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-      const time12 = `${String(hour12).padStart(2, "0")}:${String(minute).padStart(2, "0")} ${periodLabel}`;
-
-      return {
-        id: `time_${time24}`,
-        title: time12,
-        description: time24,
-      };
-    });
+    return {
+      id: `time_${time24}`,
+      title: time12,
+      description: time24,
+    };
   });
 
   await sendList(
     to,
-    "🕐 اختر الوقت المناسب:",
+    "🕐 اختر الوقت:",
     "اختيار الوقت",
     [
       {
@@ -1058,23 +1017,11 @@ async function handleButton(
     };
 
     if (contact.flow_step === "existing_booking_area") {
-      await showServiceOptions(to, nextData);
+      await showPropertyTypeOptions(to, nextData);
       return;
     }
 
     await askAddress(to, nextData);
-    return;
-  }
-
-  if (
-    buttonId === "time_period_morning" ||
-    buttonId === "time_period_afternoon"
-  ) {
-    await showTimeOptions(
-      to,
-      data,
-      buttonId === "time_period_morning" ? "morning" : "afternoon"
-    );
     return;
   }
 
@@ -1158,9 +1105,15 @@ async function handleListReply(
       return;
     }
 
+    const service =
+      propertyType === "Shop" || propertyType === "Cafe"
+        ? "Corporate Cleaning"
+        : "Residential Cleaning";
+
     await showPropertySizeOptions(to, {
       ...data,
       propertyType,
+      service: data.service || service,
     });
 
     return;
@@ -1215,7 +1168,7 @@ async function handleListReply(
 
     const nextData = {
       ...data,
-      propertyType: "Apartment",
+      propertyType: data.propertyType,
       propertySize: data.propertySize,
       cleaningType,
       estimatedPrice,
@@ -1350,7 +1303,7 @@ async function handleText(
       return;
     }
 
-    await showServiceOptions(to, {
+    await showPropertyTypeOptions(to, {
       ...data,
       phone,
     });
