@@ -174,12 +174,17 @@ async function sendWhatsAppWelcome(to: string) {
     console.error("WhatsApp welcome image error:", error);
   }
 
-  await sendButtons(
-    to,
-    "👋 أهلاً وسهلاً بك في A to Z Cleaning Services\n\n" +
-      "لأن النظافة مو بس شكل… هي راحة، انتعاش، وإحساس أجمل بالمكان 🌿✨\n" +
-      "نحن هنا لنساعدك نخلي مساحتك أنظف وأريح، من A إلى Z.\n\n" +
-      "يرجى اختيار أحد الخيارات التالية:",
+ await sendButtons(
+  to,
+  "👋 أهلاً وسهلاً بك في A to Z Cleaning Services\n\n" +
+    "لأن النظافة مو بس شكل… هي راحة، انتعاش، وإحساس أجمل بالمكان 🌿✨\n\n" +
+    "نحن جاهزون نخدمك من A إلى Z.\n\n" +
+    "💬 للحجز الآن، يمكنك إكمال الحجز مباشرة عبر WhatsApp.\n\n" +
+    "🌐 موقعنا الإلكتروني:\n" +
+    "https://www.atozcleaningservice.com\n\n" +
+    "📱 تطبيق A to Z قريباً 🚀\n" +
+    "https://www.atozcleaningservice.com/app\n\n" +
+    "اختر كيف تحب تتابع معنا 👇",
     [
       {
         id: "already_booked",
