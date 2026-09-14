@@ -1,14 +1,35 @@
 ﻿"use client";
 
+import { useEffect, useState } from "react";
+
 import Image from "next/image";
 import Button from "@/components/ui/Button";
 import { useLanguage } from "@/app/components/LanguageProvider";
+import { supabase } from "@/lib/supabase";
 
 const PHONE_NUMBER = "201214290075";
 const WHATSAPP_NUMBER = "201214290075";
 
 export default function Hero() {
 const { t, language } = useLanguage();
+const [userName, setUserName] = useState<string | null>(null);
+
+useEffect(() => {
+  const loadUserName = async () => {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) return;
+
+    const { data: profile } = await supabase
+      .from("users")
+      .select("full_name")
+      .eq("id", data.user.id)
+      .single();
+
+    setUserName(profile?.full_name || data.user.user_metadata?.full_name || data.user.email || null);
+  };
+
+  loadUserName();
+}, []);
 
 return ( <section
    id="home"
@@ -146,11 +167,16 @@ return ( <section
       {/* WHATSAPP */}
 
       <a
-  href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-    language === "ar"
-      ? "Ù…Ø±Ø­Ø¨Ù‹Ø§ØŒ Ø£ÙˆØ¯ Ø­Ø¬Ø² Ø®Ø¯Ù…Ø© ØªÙ†Ø¸ÙŠÙ."
-      : "Hello, I would like to book a cleaning service."
-  )}`}
+  href={`https://wa.me/${WHATSAPP_NUMBER}?${new URLSearchParams({
+    text:
+      language === "ar"
+        ? userName
+          ? `مرحبًا، أنا ${userName}، وأود حجز خدمة تنظيف.`
+          : "مرحبًا، أود حجز خدمة تنظيف."
+        : userName
+          ? `Hello, my name is ${userName}. I would like to book a cleaning service.`
+          : "Hello, I would like to book a cleaning service."
+  }).toString()}`}
   target="_blank"
   rel="noopener noreferrer"
   className="hero-button w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 sm:px-8 py-3 rounded-lg border border-white/30 bg-white/10 backdrop-blur-md text-white text-sm sm:text-base font-semibold hover:bg-white/20 hover:border-white/50"
@@ -288,6 +314,18 @@ return ( <section
 
 );
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
