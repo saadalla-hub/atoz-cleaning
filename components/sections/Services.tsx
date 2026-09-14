@@ -226,11 +226,15 @@ useEffect(() => {
                     {/* WhatsApp */}
 
                     <motion.a
-                      href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-                        isArabic
-                          ? userName ? `مرحبًا، أنا ${userName}، وأود حجز خدمة تنظيف ${translatedService.title}.` : `مرحبًا، أود حجز خدمة تنظيف ${translatedService.title}.`
-                          : userName ? `Hello, my name is ${userName}. I would like to book ${translatedService.title}.` : `Hello, I would like to book ${translatedService.title}.`
-                      )}`}
+                     href={`https://wa.me/${WHATSAPP_NUMBER}?${new URLSearchParams({
+  text: isArabic
+    ? (userName
+        ? `مرحبًا، أنا ${userName}، وأود حجز خدمة تنظيف ${translatedService.title}.`
+        : `مرحبًا، أود حجز خدمة تنظيف ${translatedService.title}.`)
+    : (userName
+        ? `Hello, my name is ${userName}. I would like to book ${translatedService.title}.`
+        : `Hello, I would like to book ${translatedService.title}.`)
+}).toString()}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       whileHover={{
