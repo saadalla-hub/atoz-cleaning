@@ -1,4 +1,4 @@
-export const translations = {
+﻿export const translations = {
   en: {
     nav: {
       home: "Home",
@@ -121,6 +121,14 @@ export const translations = {
         phonePlaceholder: "+20 1214290075",
         serviceArea: "Service Area",
         selectArea: "Select Area",
+        propertyType: "Property Type",
+        propertySize: "Property Size",
+        cleaningType: "Cleaning Type",
+        contactVillaPrices: "Prices vary depending on the exact property size. Please contact our team to confirm the exact area and get the appropriate price.",
+        estimatedPrice: "Estimated Price",
+        preferredDate: "Preferred Date",
+        preferredTime: "Preferred Time",
+        selectTime: "Select Time",
         madinaty: "Madinaty",
         elShorouk: "El Shorouk",
         detailedAddress: "Detailed Address",
@@ -150,6 +158,77 @@ export const translations = {
       rights: "All rights reserved.",
     },
 
+    dashboard: {
+      welcome: "Welcome",
+      managePoints: "Manage your Green Points and rewards.",
+      backToWebsite: "Back to Website",
+      logout: "Logout",
+
+      rewardsProfile: "Your Rewards Profile",
+      inviteFriends: "Invite friends and earn Green Points.",
+
+      points: "Points",
+      friends: "Friends",
+      rewards: "Rewards",
+
+      referralCode: "Your Referral Code",
+      copyCode: "Copy Code",
+      shareLink: "Share Link",
+
+      greenPoints: "Green Points",
+      availablePoints: "Available points",
+      referrals: "Referrals",
+      successfulReferrals: "Successful referrals",
+      shareWithFriends: "Share with friends",
+      approvedRewards: "Approved rewards",
+
+      myOrders: "My Orders",
+      viewManageBookings: "View and manage your cleaning bookings.",
+      noOrdersYet: "No Orders Yet",
+      bookingsAppearHere: "Your cleaning bookings will appear here.",
+
+      orderId: "Order ID",
+      propertySize: "Property Size",
+      cleaningType: "Cleaning Type",
+      estimatedPrice: "Estimated Price",
+      serviceLocation: "Service Location",
+      date: "Date",
+      time: "Time",
+      cancelOrder: "Cancel Order",
+
+      greenPointsProgress: "Green Points Progress",
+      pointsNeeded: "You need 3 Green Points to request a Free Deep Cleaning reward.",
+      morePoints: "more point",
+      morePointsPlural: "more points",
+
+      myReferrals: "My Referrals",
+      peopleJoined: "People who joined using your referral code.",
+      successfulReferralsCount: "Successful Referrals",
+      noReferrals: "You don't have any referrals yet.",
+      shareReferralInvite: "Share your referral link to invite friends.",
+      newUser: "New User",
+      emailNotAvailable: "Email not available",
+      joinedOn: "Joined on",
+
+      rewardsCenter: "Rewards Center",
+      usePoints: "Use your Green Points to request cleaning rewards.",
+      latestRewardRequest: "Latest Reward Request",
+      requestReward: "Request Free Deep Cleaning",
+      requestPending: "Request Pending",
+      notEnoughPoints: "Not Enough Points",
+      sending: "Sending...",
+
+      rewardHistory: "Reward History",
+      trackRewards: "Track all your reward requests.",
+      request: "Request",
+      requests: "Requests",
+      noRewards: "You have not requested any rewards yet.",
+
+      pendingRequests: "Pending Requests",
+      completedRewards: "Completed Rewards",
+
+      loading: "Loading your dashboard..."
+    },
     common: {
       residentialCleaning: "Residential Cleaning",
       mallServices: "Mall Services",
@@ -300,7 +379,15 @@ export const translations = {
         phone: "رقم الهاتف",
         phonePlaceholder: "+20 1214290075",
         serviceArea: "منطقة الخدمة",
-        selectArea: "اختر المنطقة",
+        selectArea: "اختر المنطقة",
+        propertyType: "نوع العقار",
+        propertySize: "مساحة العقار",
+        cleaningType: "نوع التنظيف",
+        contactVillaPrices: "الأسعار تختلف حسب المساحة الفعلية للعقار. يرجى التواصل مع فريق العمل لتأكيد المساحة بدقة والحصول على السعر المناسب.",
+        estimatedPrice: "السعر التقديري",
+        preferredDate: "التاريخ المفضل",
+        preferredTime: "الوقت المفضل",
+        selectTime: "اختر الوقت",
         madinaty: "مدينتي",
         elShorouk: "الشروق",
         detailedAddress: "العنوان بالتفصيل",
@@ -330,6 +417,77 @@ export const translations = {
       rights: "جميع الحقوق محفوظة.",
     },
 
+    dashboard: {
+      welcome: "مرحباً",
+      managePoints: "إدارة نقاط Green Points والمكافآت الخاصة بك.",
+      backToWebsite: "العودة إلى الموقع",
+      logout: "تسجيل الخروج",
+
+      rewardsProfile: "ملف المكافآت الخاص بك",
+      inviteFriends: "ادعُ أصدقاءك واكسب Green Points.",
+
+      points: "النقاط",
+      friends: "الأصدقاء",
+      rewards: "المكافآت",
+
+      referralCode: "كود الدعوة الخاص بك",
+      copyCode: "نسخ الكود",
+      shareLink: "مشاركة الرابط",
+
+      greenPoints: "Green Points",
+      availablePoints: "النقاط المتاحة",
+      referrals: "الإحالات",
+      successfulReferrals: "الإحالات الناجحة",
+      shareWithFriends: "شارك مع أصدقائك",
+      approvedRewards: "المكافآت المعتمدة",
+
+      myOrders: "طلباتي",
+      viewManageBookings: "عرض وإدارة حجوزات التنظيف الخاصة بك.",
+      noOrdersYet: "لا توجد طلبات بعد",
+      bookingsAppearHere: "ستظهر حجوزات التنظيف الخاصة بك هنا.",
+
+      orderId: "رقم الطلب",
+      propertySize: "مساحة العقار",
+      cleaningType: "نوع التنظيف",
+      estimatedPrice: "السعر التقديري",
+      serviceLocation: "موقع الخدمة",
+      date: "التاريخ",
+      time: "الوقت",
+      cancelOrder: "إلغاء الطلب",
+
+      greenPointsProgress: "تقدم Green Points",
+      pointsNeeded: "تحتاج إلى 3 Green Points لطلب مكافأة تنظيف عميق مجانية.",
+      morePoints: "نقطة إضافية",
+      morePointsPlural: "نقاط إضافية",
+
+      myReferrals: "إحالاتي",
+      peopleJoined: "الأشخاص الذين انضموا باستخدام كود الدعوة الخاص بك.",
+      successfulReferralsCount: "الإحالات الناجحة",
+      noReferrals: "ليس لديك أي إحالات حتى الآن.",
+      shareReferralInvite: "شارك رابط الدعوة الخاص بك لدعوة أصدقائك.",
+      newUser: "مستخدم جديد",
+      emailNotAvailable: "البريد الإلكتروني غير متوفر",
+      joinedOn: "انضم في",
+
+      rewardsCenter: "مركز المكافآت",
+      usePoints: "استخدم Green Points الخاصة بك لطلب مكافآت التنظيف.",
+      latestRewardRequest: "آخر طلب مكافأة",
+      requestReward: "طلب تنظيف عميق مجاني",
+      requestPending: "الطلب قيد الانتظار",
+      notEnoughPoints: "النقاط غير كافية",
+      sending: "جارٍ الإرسال...",
+
+      rewardHistory: "سجل المكافآت",
+      trackRewards: "تابع جميع طلبات المكافآت الخاصة بك.",
+      request: "طلب",
+      requests: "طلبات",
+      noRewards: "لم تطلب أي مكافآت حتى الآن.",
+
+      pendingRequests: "الطلبات المعلقة",
+      completedRewards: "المكافآت المكتملة",
+
+      loading: "جارٍ تحميل لوحة التحكم..."
+    },
     common: {
       residentialCleaning: "التنظيف السكني",
       mallServices: "خدمات المولات",
@@ -361,3 +519,8 @@ export const translations = {
 } as const;
 
 export type Language = keyof typeof translations;
+
+
+
+
+
