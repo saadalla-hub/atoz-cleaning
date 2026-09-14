@@ -1,22 +1,54 @@
-"use client";
+﻿"use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Button from "@/components/ui/Button";
 import { useLanguage } from "@/app/components/LanguageProvider";
+import { supabase } from "@/lib/supabase";
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
+  const [userName, setUserName] = useState<string | null>(null);
 
   const { language, setLanguage, t } = useLanguage();
 
+  useEffect(() => {
+    async function loadUser() {
+      const { data } = await supabase.auth.getUser();
+
+      if (data.user) {
+        console.log("LOGIN USER:", data.user.id, data.user.email);
+        const { data: profile } = await supabase
+          .from("users")
+          .select("full_name")
+          .eq("id", data.user.id)
+          .single();
+
+        console.log("PROFILE RESULT:", profile);
+
+        setUserName(profile?.full_name || data.user.user_metadata?.full_name || data.user.email || null);
+      }
+    }
+
+    loadUser();
+  }, []);
+
   const isArabic = language === "ar";
 
-  function toggleLanguage() {
-    setLanguage(isArabic ? "en" : "ar");
+  async function signOut() {
+    await supabase.auth.signOut();
+    window.location.href = "/";
   }
 
-  const navLinks = [
+ function toggleLanguage() {
+  setLanguage(isArabic ? "en" : "ar");
+}
+
+function closeMobileMenu() {
+  setIsOpen(false);
+}
+
+const navLinks = [
     { label: t.nav.home, href: "#home" },
     { label: t.nav.services, href: "#services" },
     { label: t.nav.whyUs, href: "#why-us" },
@@ -34,8 +66,12 @@ export default function Header() {
             href="#home"
             className="flex items-center gap-3 shrink-0"
           >
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-[#E7B548] text-[#0F2B34] font-extrabold">
-              AZ
+            <div className="flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-xl overflow-hidden bg-white shadow-md shrink-0">
+              <img
+                src="/images/logo/atoz-logo-new.png"
+                alt="A to Z Cleaning Services"
+                className="w-full h-full object-contain"
+              />
             </div>
 
             <div className="flex flex-col">
@@ -46,6 +82,12 @@ export default function Header() {
               <span className="text-[9px] sm:text-xs text-gray-400 tracking-widest uppercase">
                 Services
               </span>
+
+              {userName && (
+                <span className="text-[10px] sm:text-xs text-[#E7B548] font-bold mt-1">
+                  Welcome {userName} 👋
+                </span>
+              )}
             </div>
           </a>
 
@@ -61,6 +103,17 @@ export default function Header() {
               </a>
             ))}
           </nav>
+
+          {/* User Actions */}
+          {userName && (
+            <button
+              type="button"
+              onClick={signOut}
+              className="hidden lg:block text-sm text-gray-300 hover:text-[#E7B548] transition"
+            >
+              Sign Out
+            </button>
+          )}
 
           {/* Desktop Actions */}
           <div className="hidden lg:flex items-center gap-4">
@@ -159,14 +212,14 @@ export default function Header() {
                 عربي
               </span>
             </button>
-
             {/* Mobile Menu Button */}
             <motion.button
               type="button"
-              onClick={() => setIsOpen(!isOpen)}
-              whileTap={{ scale: 0.9 }}
-              className="relative w-11 h-11 flex items-center justify-center rounded-xl border border-white/20 bg-white/10"
-              aria-label="Open menu"
+              onClick={() => setIsOpen((current) => !current)}
+              whileTap={{ scale: 0.92 }}
+              className="relative z-[60] w-11 h-11 flex items-center justify-center rounded-xl border border-white/20 bg-white/10 cursor-pointer"
+              aria-label={isOpen ? "Close menu" : "Open menu"}
+              aria-expanded={isOpen}
             >
               <div className="relative w-6 h-6">
 
@@ -174,18 +227,19 @@ export default function Header() {
                 <motion.span
                   animate={{
                     rotate: isOpen ? 45 : 0,
-                    y: isOpen ? 8 : 3,
+                    y: isOpen ? 7 : 0,
                   }}
-                  transition={{ duration: 0.25 }}
-                  className="absolute left-0 w-6 h-0.5 bg-[#E7B548] rounded-full"
+                  transition={{ duration: 0.2 }}
+                  className="absolute left-0 top-2.5 w-6 h-0.5 bg-[#E7B548] rounded-full origin-center"
                 />
 
                 {/* Middle Line */}
                 <motion.span
                   animate={{
                     opacity: isOpen ? 0 : 1,
+                    scaleX: isOpen ? 0 : 1,
                   }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: 0.15 }}
                   className="absolute left-0 top-2.5 w-6 h-0.5 bg-[#E7B548] rounded-full"
                 />
 
@@ -193,10 +247,10 @@ export default function Header() {
                 <motion.span
                   animate={{
                     rotate: isOpen ? -45 : 0,
-                    y: isOpen ? 8 : 17,
+                    y: isOpen ? 7 : 12,
                   }}
-                  transition={{ duration: 0.25 }}
-                  className="absolute left-0 w-6 h-0.5 bg-[#E7B548] rounded-full"
+                  transition={{ duration: 0.2 }}
+                  className="absolute left-0 top-2.5 w-6 h-0.5 bg-[#E7B548] rounded-full origin-center"
                 />
 
               </div>
@@ -234,7 +288,7 @@ export default function Header() {
                 <motion.a
                   key={link.href}
                   href={link.href}
-                  onClick={() => setIsOpen(false)}
+                  onClick={closeMobileMenu}
                   initial={{
                     opacity: 0,
                     x: -15,
@@ -271,7 +325,7 @@ export default function Header() {
                   href="#contact"
                   size="md"
                   className="w-full"
-                  onClick={() => setIsOpen(false)}
+                  onClick={closeMobileMenu}
                 >
                   {t.nav.freeQuote}
                 </Button>
@@ -285,3 +339,19 @@ export default function Header() {
     </header>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

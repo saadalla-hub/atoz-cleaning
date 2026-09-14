@@ -1,6 +1,9 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { SERVICES } from "@/lib/constants";
 import { staggerContainer, staggerItem } from "@/lib/animations";
@@ -24,6 +27,24 @@ const iconMap = {
 
 export default function Services() {
   const { t, language } = useLanguage();
+const [userName, setUserName] = useState<string | null>(null);
+
+useEffect(() => {
+  const loadUserName = async () => {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) return;
+
+    const { data: profile } = await supabase
+      .from("users")
+      .select("full_name")
+      .eq("id", data.user.id)
+      .single();
+
+    setUserName(profile?.full_name || data.user.user_metadata?.full_name || data.user.email || null);
+  };
+
+  loadUserName();
+}, []);
 
   const isArabic = language === "ar";
 
@@ -207,8 +228,8 @@ export default function Services() {
                     <motion.a
                       href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
                         isArabic
-                          ? `مرحبًا، أود حجز خدمة ${translatedService.title}.`
-                          : `Hello, I would like to book ${translatedService.title}.`
+                          ? userName ? `مرحبًا، أنا ${userName}، وأود حجز خدمة تنظيف ${translatedService.title}.` : `مرحبًا، أود حجز خدمة تنظيف ${translatedService.title}.`
+                          : userName ? `Hello, my name is ${userName}. I would like to book ${translatedService.title}.` : `Hello, I would like to book ${translatedService.title}.`
                       )}`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -237,8 +258,132 @@ export default function Services() {
             );
           })}
         </motion.div>
+        {/* ========================================= */}
+        {/* REFERRAL / GREEN POINTS */}
+        {/* ========================================= */}
 
-      </div>
+        <motion.div
+          initial={{
+            opacity: 0,
+            y: 30,
+          }}
+          whileInView={{
+            opacity: 1,
+            y: 0,
+          }}
+          viewport={{
+            once: true,
+            margin: "-80px",
+          }}
+          transition={{
+            duration: 0.6,
+          }}
+          className="mt-10 sm:mt-12"
+        >
+          <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-[#E7B548]/30 bg-[#143640] shadow-[0_20px_60px_rgba(20,54,64,0.20)]">
+
+            {/* Decorative glow */}
+
+            <div className="absolute -top-24 -right-24 w-64 h-64 rounded-full bg-[#E7B548]/10 blur-3xl pointer-events-none" />
+
+            <div className="absolute -bottom-24 -left-24 w-64 h-64 rounded-full bg-[#E7B548]/10 blur-3xl pointer-events-none" />
+
+            <div className="relative p-6 sm:p-8 lg:p-10">
+
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-7">
+
+                {/* Referral Message */}
+
+                <div className={`flex items-start gap-4 sm:gap-5 ${isArabic ? "text-right" : "text-left"}`}>
+
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#E7B548]/15 border border-[#E7B548]/30 flex items-center justify-center text-2xl sm:text-3xl shrink-0">
+                    🎁
+                  </div>
+
+                  <div>
+
+                    <p className="text-[#E7B548] text-xs sm:text-sm font-bold uppercase tracking-[0.16em] mb-2">
+                      {isArabic
+                        ? "برنامج الإحالة والمكافآت"
+                        : "Referral & Rewards"}
+                    </p>
+
+                    <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight">
+                      {isArabic
+                        ? "أحِل أصدقاءك واكسب نقاط خضراء"
+                        : "Refer Friends. Earn Green Points."}
+                    </h3>
+
+                    <p className="mt-3 text-gray-300 text-sm sm:text-base leading-relaxed max-w-2xl">
+                      {isArabic
+                        ? "إذا أحلت اليوم أصدقاءك وحجزوا خدمة تنظيف، تحصل على نقاط خضراء. تابع نقاطك وإحالاتك ومكافآتك بسهولة من لوحة التحكم."
+                        : "Refer your friends and earn Green Points when they book a cleaning service. Track your points, referrals, and rewards from your dashboard."}
+                    </p>
+
+                  </div>
+
+                </div>
+
+                {/* Dashboard Button */}
+
+                <Link
+                  href="/dashboard"
+                  className="group w-full lg:w-auto inline-flex items-center justify-center gap-3 shrink-0 rounded-xl bg-[#E7B548] px-6 sm:px-8 py-3.5 sm:py-4 text-sm sm:text-base font-bold text-[#143640] shadow-lg shadow-[#E7B548]/10 hover:bg-[#F4C95D] hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
+                >
+
+                  <span>
+                    {isArabic
+                      ? "لوحة الإحالات والمكافآت"
+                      : "Open Referral Dashboard"}
+                  </span>
+
+                  <span
+                    className={`text-lg transition-transform duration-300 ${
+                      isArabic
+                        ? "group-hover:-translate-x-1"
+                        : "group-hover:translate-x-1"
+                    }`}
+                  >
+                    {isArabic ? "←" : "→"}
+                  </span>
+
+                </Link>
+
+              </div>
+
+              {/* Small benefit row */}
+
+              <div className="relative mt-7 pt-5 border-t border-white/10 flex flex-wrap items-center gap-x-6 gap-y-3">
+
+                <div className="flex items-center gap-2 text-sm text-white/75">
+                  <span className="w-2 h-2 rounded-full bg-[#E7B548]" />
+                  {isArabic ? "تابع نقاطك الخضراء" : "Track Green Points"}
+                </div>
+
+                <div className="flex items-center gap-2 text-sm text-white/75">
+                  <span className="w-2 h-2 rounded-full bg-[#E7B548]" />
+                  {isArabic ? "شاهد إحالاتك" : "View Referrals"}
+                </div>
+
+                <div className="flex items-center gap-2 text-sm text-white/75">
+                  <span className="w-2 h-2 rounded-full bg-[#E7B548]" />
+                  {isArabic ? "اطلب مكافآتك" : "Claim Rewards"}
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+        </motion.div>
+</div>
     </section>
   );
 }
+
+
+
+
+
+
+
