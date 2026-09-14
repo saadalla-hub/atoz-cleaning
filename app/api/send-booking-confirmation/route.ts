@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     const resend = new Resend(resendApiKey);
 
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: 'A to Z Cleaning Services <onboarding@resend.dev>',
+      from: 'A to Z Cleaning Services <booking@atozcleaningservice.com>',
       to: email,
       subject: 'Booking Confirmation - A to Z Cleaning Services',
       text: `
