@@ -1,11 +1,17 @@
-﻿import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 import { createHmac, randomUUID, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { PRICES } from "../../../../lib/prices";
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SECRET_KEY!
-);
+function getSupabase() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SECRET_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Supabase environment variables are not configured");
+  }
+
+  return createClient(supabaseUrl, supabaseKey);
+}
 
 const WHATSAPP_API_VERSION = "v26.0";
 
@@ -201,7 +207,7 @@ async function sendWhatsAppWelcome(to: string) {
 }
 
 async function getContact(phone: string): Promise<ContactRow | null> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("whatsapp_contacts")
     .select("*")
     .eq("phone", phone)
@@ -223,7 +229,7 @@ async function saveContact(
     flow_data?: FlowData;
   }
 ) {
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from("whatsapp_contacts")
     .upsert(
       {
@@ -265,7 +271,7 @@ async function findUserByPhone(phone: string) {
   const variants = phoneVariants(phone);
 
   for (const variant of variants) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("users")
       .select("id, full_name, phone")
       .eq("phone", variant)
@@ -296,7 +302,7 @@ async function createUser(
 
   const userId = randomUUID();
 
-  const { data, error } = await supabase.rpc(
+  const { data, error } = await getSupabase().rpc(
     "register_user_with_referral",
     {
       p_user_id: userId,
@@ -330,7 +336,7 @@ async function findBookingByPhone(phone: string) {
   const variants = phoneVariants(phone);
 
   for (const variant of variants) {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("bookings")
       .select(
         `
@@ -882,7 +888,7 @@ async function createBookingFromFlow(to: string, data: FlowData) {
       (await createUser(data.name, data.phone));
   }
 
-  const { error } = await supabase.from("bookings").insert({
+  const { error } = await getSupabase().from("bookings").insert({
     user_id: userId,
     service: serviceLabel(data.service),
     property_type: data.propertyType,
@@ -925,7 +931,7 @@ async function updateExistingBooking(to: string, data: FlowData) {
     throw new Error("Missing booking ID");
   }
 
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from("bookings")
     .update({
       service: serviceLabel(data.service),
