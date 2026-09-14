@@ -189,7 +189,7 @@ console.log('LOGIN VERIFIED SESSION:', {
         return;
       }
 
-      router.push('/');
+      router.push('/home');
 
 }
 
