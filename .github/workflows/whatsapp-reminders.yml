@@ -1,0 +1,16 @@
+﻿name: WhatsApp Reminders
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger WhatsApp reminders
+        run: |
+          curl -f -sS \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://atoz-cleaning.vercel.app/api/cron/reminders"
