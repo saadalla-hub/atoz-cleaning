@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+﻿import { createClient } from "@supabase/supabase-js";
 import { createHmac, randomUUID, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { PRICES } from "../../../../lib/prices";
@@ -408,7 +408,12 @@ function phoneVariants(phone: string) {
   if (digits) {
     variants.add(digits);
   }
+if (digits.startsWith("00")) {
+  const international = digits.slice(2);
 
+  variants.add(international);
+  variants.add(`+${international}`);
+}
   if (digits.startsWith("20")) {
     variants.add(`+${digits}`);
     variants.add(`0${digits.slice(2)}`);
