@@ -1533,7 +1533,61 @@ export async function POST(request: NextRequest) {
         type: messageType,
       })
     );
+    // Website/App booking message
+    if (messageType === "text") {
+      const incomingText = message.text?.body?.trim() ?? "";
 
+      const isWebsiteBooking =
+        incomingText.includes("أرغب في حجز خدمة تنظيف") ||
+        incomingText.includes("I would like to book a cleaning service.");
+
+      if (isWebsiteBooking) {
+        console.log("Website/App booking message detected:", from);
+
+        const booking = await findBookingByPhone(from);
+
+        if (booking) {
+          await saveContact(from, {
+            customer_name: booking.customer_name || customerName,
+            welcome_sent: true,
+            flow_step: "completed",
+            flow_data: {
+              userId: booking.user_id,
+              bookingId: booking.id,
+              name: booking.customer_name || customerName || undefined,
+              phone: booking.customer_phone || from,
+              service: booking.service || undefined,
+              area: booking.area || undefined,
+              address: booking.address || undefined,
+              date: booking.booking_date || undefined,
+              time: booking.booking_time || undefined,
+              notes: booking.notes || undefined,
+              propertyType: booking.property_type || undefined,
+              propertySize: booking.property_size || undefined,
+              cleaningType: booking.cleaning_type || undefined,
+              estimatedPrice: booking.estimated_price ?? null,
+            },
+          });
+
+          await sendText(
+            from,
+            "🎉 تم تأكيد طلبك بنجاح!\n\n" +
+              "تم تسجيل الحجز لدينا، وسيظهر الآن ضمن نظام الحجوزات.\n\n" +
+              "شكرًا لاختيارك A to Z Cleaning Services 🌿✨"
+          );
+
+          return NextResponse.json(
+            { received: true },
+            { status: 200 }
+          );
+        }
+
+        console.warn(
+          "Website/App booking message received, but no booking was found:",
+          from
+        );
+      }
+    }
     let whatsappContact = await getContact(from);
 
     // First normal message = welcome.

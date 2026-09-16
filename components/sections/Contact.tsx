@@ -307,7 +307,7 @@ console.log("AUTH ERROR:", authError);
       customer_name: name,
       customer_phone: phone,
       referral_code_used: referralCodeUsed,
-      status: "pending",
+      status: "confirmed",
     });
 
 console.log("===== WEB BOOKING INSERT =====");
