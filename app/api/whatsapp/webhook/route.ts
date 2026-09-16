@@ -414,6 +414,15 @@ if (digits.startsWith("00")) {
   variants.add(international);
   variants.add(`+${international}`);
 }
+
+if (
+  digits &&
+  !digits.startsWith("0") &&
+  !digits.startsWith("20")
+) {
+  variants.add(`00${digits}`);
+  variants.add(`+${digits}`);
+}
   if (digits.startsWith("20")) {
     variants.add(`+${digits}`);
     variants.add(`0${digits.slice(2)}`);
