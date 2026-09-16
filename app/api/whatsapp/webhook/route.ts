@@ -30,6 +30,13 @@ type FlowData = {
   notes?: string;
   userId?: string;
   bookingId?: string;
+  bookingOptions?: {
+  id: string;
+  date?: string | null;
+  time?: string | null;
+  service?: string | null;
+  area?: string | null;
+}[];
   existingBooking?: boolean;
 };
 
@@ -374,7 +381,47 @@ async function findBookingByPhone(phone: string) {
 
   return null;
 }
+async function findBookingsByPhone(phone: string) {
+  const variants = phoneVariants(phone);
 
+  for (const variant of variants) {
+    const { data, error } = await getSupabase()
+      .from("bookings")
+      .select(
+        `
+        id,
+        user_id,
+        service,
+        property_type,
+        property_size,
+        cleaning_type,
+        area,
+        address,
+        booking_date,
+        booking_time,
+        status,
+        notes,
+        customer_name,
+        customer_phone,
+        estimated_price
+        `
+      )
+      .eq("customer_phone", variant)
+      .neq("status", "cancelled")
+      .order("booking_date", { ascending: true })
+      .order("booking_time", { ascending: true });
+
+    if (error) {
+      throw new Error(`Bookings lookup error: ${error.message}`);
+    }
+
+    if (data && data.length > 0) {
+      return data as BookingRow[];
+    }
+  }
+
+  return [];
+}
 function normalizePhone(phone: string) {
   const digits = phone.replace(/\D/g, "");
 
@@ -495,7 +542,34 @@ async function startExistingBooking(to: string) {
     "✅ تمام! رح نبحث عن حجزك الموجود.\n\n📞 أرسل رقم الهاتف المستخدم عند الحجز:"
   );
 }
+async function showExistingBooking(to: string, data: FlowData) {
+  await saveContact(to, {
+    flow_step: "existing_booking_actions",
+    flow_data: data,
+  });
 
+  const text =
+    "📋 *وجدنا حجزك الموجود*\n\n" +
+    `👤 الاسم: ${data.name || "-"}\n` +
+    `🧹 الخدمة: ${serviceDisplayLabel(data.service)}\n` +
+    `📅 التاريخ: ${formatDateForDisplay(data.date)}\n` +
+    `🕐 الوقت: ${data.time || "-"}\n` +
+    `📍 المنطقة: ${areaLabel(data.area)}\n` +
+    `🏠 العنوان: ${data.address || "-"}\n` +
+    `💰 السعر التقديري: ${formatPrice(data.estimatedPrice)}\n\n` +
+    "ماذا تريد أن تفعل؟";
+
+  await sendButtons(to, text, [
+    {
+      id: "existing_booking_edit",
+      title: "🔧 تعديل الحجز",
+    },
+    {
+      id: "existing_booking_cancel",
+      title: "❌ إلغاء الحجز",
+    },
+  ]);
+}
 async function showServiceOptions(to: string, data: FlowData) {
   await showPropertyTypeOptions(to, {
     ...data,
@@ -978,6 +1052,33 @@ async function updateExistingBooking(to: string, data: FlowData) {
       "تم حفظ المعلومات الجديدة في نظام A to Z Cleaning Services."
   );
 }
+async function cancelExistingBooking(to: string, data: FlowData) {
+  if (!data.bookingId) {
+    throw new Error("Missing booking ID");
+  }
+
+  const { error } = await getSupabase()
+    .from("bookings")
+    .update({
+      status: "cancelled",
+    })
+    .eq("id", data.bookingId);
+
+  if (error) {
+    throw new Error(`Booking cancellation error: ${error.message}`);
+  }
+
+  await saveContact(to, {
+    flow_step: "completed",
+    flow_data: data,
+  });
+
+  await sendText(
+    to,
+    "✅ تم إلغاء حجزك بنجاح.\n\n" +
+      "إذا احتجت إلى حجز جديد، يمكنك البدء من جديد في أي وقت."
+  );
+}
 
 async function handleButton(
   to: string,
@@ -995,7 +1096,47 @@ async function handleButton(
     await startExistingBooking(to);
     return;
   }
+  if (buttonId === "existing_booking_edit") {
+    if (!data.bookingId) {
+      await sendText(to, "❗ لم نتمكن من تحديد الحجز.");
+      return;
+    }
 
+    await askArea(to, "existing_booking_area", data);
+    return;
+  }
+
+  if (buttonId === "existing_booking_cancel") {
+    if (!data.bookingId) {
+      await sendText(to, "❗ لم نتمكن من تحديد الحجز.");
+      return;
+    }
+
+    await sendButtons(
+      to,
+      "⚠️ هل أنت متأكد أنك تريد إلغاء هذا الحجز؟",
+      [
+        {
+          id: "existing_booking_cancel_confirm",
+          title: "نعم، إلغاء الحجز",
+        },
+        {
+          id: "existing_booking_cancel_back",
+          title: "رجوع",
+        },
+      ]
+    );
+    return;
+  }
+    if (buttonId === "existing_booking_cancel_confirm") {
+    await cancelExistingBooking(to, data);
+    return;
+  }
+
+  if (buttonId === "existing_booking_cancel_back") {
+    await showExistingBooking(to, data);
+    return;
+  }
   if (
     buttonId === "service_malls" ||
     buttonId === "service_commercial"
@@ -1111,7 +1252,68 @@ async function handleListReply(
 ) {
   const data: FlowData = contact.flow_data || {};
   const step = contact.flow_step;
+  if (step === "existing_booking_select") {
+    const selectedBookingId = replyId;
 
+    const { data: booking, error } = await getSupabase()
+      .from("bookings")
+      .select(
+        `
+        id,
+        user_id,
+        service,
+        property_type,
+        property_size,
+        cleaning_type,
+        area,
+        address,
+        booking_date,
+        booking_time,
+        status,
+        notes,
+        customer_name,
+        customer_phone,
+        estimated_price
+        `
+      )
+      .eq("id", selectedBookingId)
+      .neq("status", "cancelled")
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Selected booking lookup error: ${error.message}`);
+    }
+
+    if (!booking) {
+      await sendText(
+        to,
+        "❗ لم نتمكن من العثور على الحجز المختار."
+      );
+      return;
+    }
+
+    const nextData: FlowData = {
+      ...data,
+      bookingId: booking.id,
+      userId: booking.user_id,
+      phone: data.phone || booking.customer_phone || undefined,
+      name: booking.customer_name || undefined,
+      service: booking.service || "Residential Cleaning",
+      area: booking.area || undefined,
+      address: booking.address || undefined,
+      date: booking.booking_date || undefined,
+      time: booking.booking_time || undefined,
+      notes: booking.notes || undefined,
+      propertyType: booking.property_type || undefined,
+      propertySize: booking.property_size || undefined,
+      cleaningType: booking.cleaning_type || undefined,
+      estimatedPrice: booking.estimated_price ?? null,
+      existingBooking: true,
+    };
+
+    await showExistingBooking(to, nextData);
+    return;
+  }
   if (
     step === "new_booking_property_type" ||
     step === "existing_booking_property_type"
@@ -1335,45 +1537,47 @@ async function handleText(
 
     return;
   }
+if (step === "existing_booking_phone") {
+  const phone = normalizePhone(text);
 
-  if (step === "existing_booking_phone") {
-    const phone = normalizePhone(text);
+  if (!isValidPhone(phone)) {
+    await sendText(
+      to,
+      "📞 أرسل رقم الهاتف المستخدم عند الحجز بشكل صحيح:"
+    );
+    return;
+  }
 
-    if (!isValidPhone(phone)) {
-      await sendText(
-        to,
-        "📞 أرسل رقم الهاتف المستخدم عند الحجز بشكل صحيح:"
-      );
-      return;
-    }
+  const bookings = await findBookingsByPhone(phone);
 
-    const booking = await findBookingByPhone(phone);
+  if (bookings.length === 0) {
+    await saveContact(to, {
+      flow_step: "no_booking_found",
+      flow_data: {
+        phone,
+      },
+    });
 
-    if (!booking) {
-      await saveContact(to, {
-        flow_step: "no_booking_found",
-        flow_data: {
-          phone,
+    await sendButtons(
+      to,
+      "❗ لم نجد حجزًا مرتبطًا بهذا الرقم.\n\nهل تريد إنشاء حجز جديد؟",
+      [
+        {
+          id: "new_booking",
+          title: "🆕 حجز جديد",
         },
-      });
+        {
+          id: "cancel_booking",
+          title: "❌ إلغاء",
+        },
+      ]
+    );
 
-      await sendButtons(
-        to,
-        "❗ لم نجد حجزًا مرتبطًا بهذا الرقم.\n\nهل تريد إنشاء حجز جديد؟",
-        [
-          {
-            id: "new_booking",
-            title: "🆕 حجز جديد",
-          },
-          {
-            id: "cancel_booking",
-            title: "❌ إلغاء",
-          },
-        ]
-      );
+    return;
+  }
 
-      return;
-    }
+  if (bookings.length === 1) {
+    const booking = bookings[0];
 
     const nextData: FlowData = {
       ...data,
@@ -1394,15 +1598,42 @@ async function handleText(
       existingBooking: true,
     };
 
-    await saveContact(to, {
-      flow_step: "existing_booking_area",
-      flow_data: nextData,
-    });
-
-    await askArea(to, "existing_booking_area", nextData);
+    await showExistingBooking(to, nextData);
     return;
   }
 
+  await saveContact(to, {
+    flow_step: "existing_booking_select",
+    flow_data: {
+      phone,
+      bookingOptions: bookings.map((booking) => ({
+        id: booking.id,
+        date: booking.booking_date,
+        time: booking.booking_time,
+        service: booking.service,
+        area: booking.area,
+      })),
+    },
+  });
+
+  await sendList(
+    to,
+    "📋 وجدنا أكثر من حجز مرتبط بهذا الرقم.\n\nاختر الحجز الذي تريد التعامل معه:",
+    "اختيار الحجز",
+    [
+      {
+        title: "الحجوزات",
+        rows: bookings.map((booking, index) => ({
+          id: booking.id,
+          title: `${formatDateForDisplay(booking.booking_date || undefined)} - ${booking.booking_time || "-"}`,
+description: `${serviceDisplayLabel(booking.service || undefined)} - ${areaLabel(booking.area || undefined)}`,
+        })),
+      },
+    ]
+  );
+
+  return;
+}
   if (
     step === "new_booking_property_type" ||
     step === "new_booking_property_size" ||
