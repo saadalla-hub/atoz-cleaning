@@ -62,10 +62,34 @@ function parseBookingTime(time: string) {
 }
 
 function getCairoNow() {
+  const now = new Date();
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Africa/Cairo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+
+  const values = Object.fromEntries(
+    parts
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value])
+  );
+
   return new Date(
-    new Date().toLocaleString("en-US", {
-      timeZone: "Africa/Cairo",
-    })
+    Date.UTC(
+      Number(values.year),
+      Number(values.month) - 1,
+      Number(values.day),
+      Number(values.hour),
+      Number(values.minute),
+      Number(values.second)
+    )
   );
 }
 
@@ -254,12 +278,12 @@ export async function GET(request: NextRequest) {
 
       const bookingDateTime = new Date(cairoNow);
 
-      bookingDateTime.setHours(
-        parsedTime.hour,
-        parsedTime.minute,
-        0,
-        0
-      );
+     bookingDateTime.setUTCHours(
+  parsedTime.hour,
+  parsedTime.minute,
+  0,
+  0
+);
 
       const reminderTime = new Date(
         bookingDateTime.getTime() - REMINDER_MINUTES * 60 * 1000
