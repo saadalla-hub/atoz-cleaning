@@ -990,7 +990,7 @@ async function createBookingFromFlow(to: string, data: FlowData) {
     notes: data.notes || null,
     customer_name: data.name,
     customer_phone: data.phone,
-    status: "pending",
+    status: "confirmed",
     confirmation_email_sent: false,
   });
 
