@@ -1625,7 +1625,7 @@ if (step === "existing_booking_phone") {
         title: "الحجوزات",
         rows: bookings.map((booking, index) => ({
           id: booking.id,
-          title: `${formatDateForDisplay(booking.booking_date || undefined)} - ${booking.booking_time || "-"}`,
+          title: `${booking.booking_date?.slice(8, 10)}/${booking.booking_date?.slice(5, 7)} - ${(booking.booking_time || "-").slice(0, 8)}`,
 description: `${serviceDisplayLabel(booking.service || undefined)} - ${areaLabel(booking.area || undefined)}`,
         })),
       },
