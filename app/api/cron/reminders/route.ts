@@ -289,16 +289,11 @@ export async function GET(request: NextRequest) {
         bookingDateTime.getTime() - REMINDER_MINUTES * 60 * 1000
       );
 
-      const windowEnd = new Date(
-        reminderTime.getTime() +
-          REMINDER_WINDOW_MINUTES * 60 * 1000
-      );
+      if (cairoNow < reminderTime || cairoNow >= bookingDateTime) {
+  skipped++;
 
-      if (cairoNow < reminderTime || cairoNow > windowEnd) {
-        skipped++;
-
-        continue;
-      }
+  continue;
+}
 
       try {
         await sendReminderTemplate(
