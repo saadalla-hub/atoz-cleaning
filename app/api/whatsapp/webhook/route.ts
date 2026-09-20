@@ -1590,15 +1590,17 @@ description: `${serviceDisplayLabel(booking.service || undefined)} - ${areaLabel
 
     return;
   }
+if (step === "booking_notes_text") {
+  const finalData = {
+    ...data,
+    notes: text.trim() || "لا يوجد",
+  };
 
-  if (step === "booking_notes_text") {
-    await showSummary(to, {
-      ...data,
-      notes: text.trim() || "لا يوجد",
-    });
-    return;
-  }
+  console.log("FINAL BOOKING DATA:", JSON.stringify(finalData, null, 2));
 
+  await showSummary(to, finalData);
+  return;
+}
   if (
     step === "welcome" ||
     step === "completed" ||
