@@ -712,7 +712,7 @@ async function askNotes(to: string, data: FlowData) {
   const language = getLanguage(data);
   await sendButtons(to, t(language, "📝 هل لديك أي ملاحظات إضافية؟", "📝 Do you have any additional notes?"), [
     { id: "notes_none", title: t(language, "لا يوجد", "No") },
-    { id: "notes_write", title: t(language, "نعم، سأكتبها", "Yes, I will write them") },
+   { id: "notes_write", title: t(language, "نعم، سأكتبها", "Yes, I'll write") },
   ]);
 }
 
