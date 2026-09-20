@@ -847,8 +847,7 @@ async function createBookingFromFlow(to: string, data: FlowData) {
     !data.cleaningType ||
     data.estimatedPrice == null
   ) {
-    console.log("Incomplete booking data:", JSON.stringify(data, null, 2));
-throw new Error("Incomplete booking data");
+    throw new Error("Incomplete booking data");
   }
 
   let userId = data.userId;
@@ -1057,7 +1056,7 @@ async function handleButton(
       ...data,
       area,
     };
-console.log("AREA SELECTED:", JSON.stringify(nextData, null, 2));
+
     if (contact.flow_step === "existing_booking_area") {
       await showPropertyTypeOptions(to, nextData);
       return;
@@ -1590,17 +1589,15 @@ description: `${serviceDisplayLabel(booking.service || undefined)} - ${areaLabel
 
     return;
   }
-if (step === "booking_notes_text") {
-  const finalData = {
-    ...data,
-    notes: text.trim() || "لا يوجد",
-  };
 
-  console.log("FINAL BOOKING DATA:", JSON.stringify(finalData, null, 2));
+  if (step === "booking_notes_text") {
+    await showSummary(to, {
+      ...data,
+      notes: text.trim() || "لا يوجد",
+    });
+    return;
+  }
 
-  await showSummary(to, finalData);
-  return;
-}
   if (
     step === "welcome" ||
     step === "completed" ||
