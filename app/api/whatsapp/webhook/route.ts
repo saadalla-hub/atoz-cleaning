@@ -570,7 +570,51 @@ async function showServicePropertyOptions(to: string, data: FlowData) {
 }
 
 async function showServiceOptions(to: string, data: FlowData) {
-  await showServicePropertyOptions(to, data);
+  const language = getLanguage(data);
+
+  await saveContact(to, {
+    flow_step: data.existingBooking
+      ? "existing_booking_service"
+      : "new_booking_service",
+    flow_data: data,
+  });
+
+  await sendList(
+    to,
+    t(language, "🧹 اختر الخدمة:", "🧹 Choose the service:"),
+    t(language, "الخدمة", "Service"),
+    [
+      {
+        title: t(language, "الخيارات", "Options"),
+        rows: [
+          {
+            id: "service_apartment",
+            title: t(
+              language,
+              "🏠 تنظيف سكني",
+              "🏠 Residential Cleaning"
+            ),
+          },
+          {
+            id: "service_malls",
+            title: t(
+              language,
+              "🏬 خدمات المولات",
+              "🏬 Mall Services"
+            ),
+          },
+          {
+            id: "service_commercial",
+            title: t(
+              language,
+              "🏢 تنظيف الشركات",
+              "🏢 Corporate Cleaning"
+            ),
+          },
+        ],
+      },
+    ]
+  );
 }
 
 async function askArea(to: string, step: string, data: FlowData) {
@@ -999,30 +1043,18 @@ async function handleButton(
     return;
   }
   if (
-    buttonId === "service_malls" ||
-    buttonId === "service_commercial"
-  ) {
-    await saveContact(to, {
-      flow_step: "team_contact",
-      flow_data: {
-        ...data,
-        service:
-          buttonId === "service_malls"
-            ? "Mall Services"
-            : "Corporate Cleaning",
-      },
-    });
-
-    await sendText(
-      to,
-      "شكرًا لاختيارك A to Z Cleaning Services 🌿\n\n" +
-        "هذه الخدمة يتم تنسيقها مباشرة مع فريق العمل المختص.\n\n" +
-        "📞 يرجى التواصل معنا على:\n" +
-        "00201214290073"
-    );
-
-    return;
-  }
+  buttonId === "service_malls" ||
+  buttonId === "service_commercial"
+) {
+  await showPropertyTypeOptions(to, {
+    ...data,
+    service:
+      buttonId === "service_malls"
+        ? "Mall Services"
+        : "Corporate Cleaning",
+  });
+  return;
+}
 
   if (buttonId === "service_apartment") {
     await showPropertyTypeOptions(to, {
@@ -1033,30 +1065,24 @@ async function handleButton(
   }
 
   if (buttonId === "area_madinaty" || buttonId === "area_shorouk") {
-    const area =
-      buttonId === "area_madinaty"
-        ? "Madinaty"
-        : "El Shorouk";
+  const area =
+    buttonId === "area_madinaty"
+      ? "Madinaty"
+      : "El Shorouk";
 
-    const nextData = {
-      ...data,
-      area,
-    };
+  const nextData = {
+    ...data,
+    area,
+  };
 
-    if (contact.flow_step === "existing_booking_area") {
-      await showPropertyTypeOptions(to, nextData);
-      return;
-    }
-
-    await askAddress(to, nextData);
+  if (contact.flow_step === "existing_booking_area") {
+    await showPropertyTypeOptions(to, nextData);
     return;
   }
 
-  if (buttonId === "price_continue") {
-    await askAppointment(to, data);
-    return;
-  }
-
+  await showPropertySizeOptions(to, nextData);
+  return;
+}
   if (buttonId === "notes_none") {
     await showSummary(to, {
       ...data,
