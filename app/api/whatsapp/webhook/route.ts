@@ -39,6 +39,7 @@ type FlowData = {
 }[];
   existingBooking?: boolean;
   language?: "ar" | "en";
+  lastMessageId?: string;
 };
 
 type ContactRow = {
@@ -1579,6 +1580,7 @@ description: `${serviceDisplayLabel(booking.service || undefined)} - ${areaLabel
   }
 
   if (step === "booking_address") {
+    console.log("ADDRESS STEP:", JSON.stringify({ to, text, step }));
     const address = text.trim();
 
     if (!address) {
@@ -1681,6 +1683,7 @@ export async function POST(request: NextRequest) {
     const body = JSON.parse(rawBody);
     const value = body?.entry?.[0]?.changes?.[0]?.value;
     const message = value?.messages?.[0];
+    const messageId = message?.id ?? null;
     const contact = value?.contacts?.[0];
 
     if (!message) {
@@ -1840,6 +1843,7 @@ export async function POST(request: NextRequest) {
     });
   }
 }
+
 
 
 
