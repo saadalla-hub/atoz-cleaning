@@ -847,7 +847,8 @@ async function createBookingFromFlow(to: string, data: FlowData) {
     !data.cleaningType ||
     data.estimatedPrice == null
   ) {
-    throw new Error("Incomplete booking data");
+    console.log("Incomplete booking data:", JSON.stringify(data, null, 2));
+throw new Error("Incomplete booking data");
   }
 
   let userId = data.userId;
