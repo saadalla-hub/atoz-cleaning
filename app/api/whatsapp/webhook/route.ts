@@ -1057,7 +1057,7 @@ async function handleButton(
       ...data,
       area,
     };
-
+console.log("AREA SELECTED:", JSON.stringify(nextData, null, 2));
     if (contact.flow_step === "existing_booking_area") {
       await showPropertyTypeOptions(to, nextData);
       return;
