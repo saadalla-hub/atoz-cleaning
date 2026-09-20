@@ -173,11 +173,8 @@ async function sendList(
   });
 }
 
-function detectLanguage(text?: string, fallback: "ar" | "en" = "ar"): "ar" | "en" {
-  const value = text || "";
-  if (/[\u0600-\u06FF]/.test(value)) return "ar";
-  if (/[A-Za-z]/.test(value)) return "en";
-  return fallback;
+function detectLanguage(text?: string): "ar" | "en" {
+  return /[\u0600-\u06FF]/.test(text || "") ? "ar" : "en";
 }
 
 function getLanguage(data?: FlowData): "ar" | "en" {
@@ -557,25 +554,11 @@ async function showExistingBooking(to: string, data: FlowData) {
     },
   ]);
 }
-async function showServicePropertyOptions(to: string, data: FlowData) {
-  const language = getLanguage(data);
-  await saveContact(to, { flow_step: "new_booking_service_property", flow_data: data });
-  await sendList(to, t(language, "🧹 اختر الخدمة والعقار:", "🧹 Choose service & property:"), t(language, "الخدمة والعقار", "Service & property"), [{ title: t(language, "الخيارات", "Options"), rows: [
-    { id: "combo_res_apartment", title: t(language, "🧹 تنظيف شقق — 🏠 شقة", "🧹 Residential — 🏠 Apartment") },
-    { id: "combo_res_villa", title: t(language, "🧹 تنظيف شقق — 🏡 فيلا", "🧹 Residential — 🏡 Villa") },
-    { id: "combo_mall", title: t(language, "🏬 تنظيف مولات", "🏬 Mall Services") },
-    { id: "combo_corp_shop", title: t(language, "🏢 شركات — 🏪 متجر", "🏢 Corporate — 🏪 Shop") },
-    { id: "combo_corp_cafe", title: t(language, "🏢 شركات — ☕ كافيه", "🏢 Corporate — ☕ Cafe") },
-  ] }]);
-}
-
 async function showServiceOptions(to: string, data: FlowData) {
   const language = getLanguage(data);
 
   await saveContact(to, {
-    flow_step: data.existingBooking
-      ? "existing_booking_service"
-      : "new_booking_service",
+    flow_step: data.existingBooking ? "existing_booking_service" : "new_booking_service",
     flow_data: data,
   });
 
@@ -587,30 +570,9 @@ async function showServiceOptions(to: string, data: FlowData) {
       {
         title: t(language, "الخيارات", "Options"),
         rows: [
-          {
-            id: "service_apartment",
-            title: t(
-              language,
-              "🏠 تنظيف سكني",
-              "🏠 Residential Cleaning"
-            ),
-          },
-          {
-            id: "service_malls",
-            title: t(
-              language,
-              "🏬 خدمات المولات",
-              "🏬 Mall Services"
-            ),
-          },
-          {
-            id: "service_commercial",
-            title: t(
-              language,
-              "🏢 تنظيف الشركات",
-              "🏢 Corporate Cleaning"
-            ),
-          },
+          { id: "service_apartment", title: t(language, "🏠 تنظيف سكني", "🏠 Residential Cleaning") },
+          { id: "service_malls", title: t(language, "🏬 خدمات المولات", "🏬 Mall Services") },
+          { id: "service_commercial", title: t(language, "🏢 تنظيف الشركات", "🏢 Corporate Cleaning") },
         ],
       },
     ]
@@ -621,31 +583,82 @@ async function askArea(to: string, step: string, data: FlowData) {
   const language = getLanguage(data);
   await saveContact(to, { flow_step: step, flow_data: data });
   await sendButtons(to, t(language, "📍 اختر المنطقة:", "📍 Choose the area:"), [
-    { id: "area_madinaty", title: "مدينتي / Madinaty" },
-    { id: "area_shorouk", title: "الشروق / El Shorouk" },
+    { id: "area_madinaty", title: t(language, "مدينتي", "Madinaty") },
+    { id: "area_shorouk", title: t(language, "الشروق", "El Shorouk") },
   ]);
 }
 
 async function askAppointment(to: string, data: FlowData) {
   const language = getLanguage(data);
-  await saveContact(to, { flow_step: "booking_appointment", flow_data: data });
+  await saveContact(to, { flow_step: "booking_date", flow_data: data });
+
   const base = getCairoTodayUtc();
   const date = new Date(base);
   const rows: { id: string; title: string; description?: string }[] = [];
-  const hours = [9, 10, 11];
+
   while (rows.length < 9) {
     date.setUTCDate(date.getUTCDate() + 1);
     if (date.getUTCDay() === 5) continue;
+
     const iso = date.toISOString().slice(0, 10);
-    for (const hour of hours) {
-      const hour12 = hour > 12 ? hour - 12 : hour;
-      const time = `${String(hour12).padStart(2, "0")}:00 ${hour < 12 ? "AM" : "PM"}`;
-      const dateLabel = new Intl.DateTimeFormat(language === "en" ? "en-US" : "ar-EG", { timeZone: "Africa/Cairo", weekday: "short", day: "2-digit", month: "2-digit" }).format(date);
-      rows.push({ id: `appointment_${iso}_${String(hour).padStart(2, "0")}`, title: `${iso.slice(8,10)}/${iso.slice(5,7)} — ${time}`, description: iso });
-    }
+    const title = new Intl.DateTimeFormat(
+      language === "en" ? "en-US" : "ar-EG",
+      {
+        timeZone: "Africa/Cairo",
+        weekday: "short",
+        day: "2-digit",
+        month: "2-digit",
+      }
+    ).format(date);
+
+    rows.push({
+      id: `appointment_date_${iso}`,
+      title,
+      description: iso,
+    });
   }
-  rows.push({ id: "appointment_other", title: t(language, "📅 تاريخ آخر", "📅 Other date"), description: t(language, "أدخل التاريخ لاحقًا", "Enter another date") });
-  await sendList(to, t(language, "📅 اختر الموعد (التاريخ + الوقت):", "📅 Choose your appointment (date + time):"), t(language, "اختيار الموعد", "Choose appointment"), [{ title: t(language, "المواعيد المتاحة", "Available appointments"), rows }]);
+
+  rows.push({
+    id: "appointment_other",
+    title: t(language, "📅 تاريخ آخر", "📅 Other date"),
+    description: t(language, "أدخل التاريخ لاحقًا", "Enter another date"),
+  });
+
+  await sendList(
+    to,
+    t(language, "📅 اختر التاريخ:", "📅 Choose the date:"),
+    t(language, "اختيار التاريخ", "Choose date"),
+    [
+      {
+        title: t(language, "المواعيد المتاحة", "Available dates"),
+        rows,
+      },
+    ]
+  );
+}
+
+async function askAppointmentTime(to: string, data: FlowData) {
+  const language = getLanguage(data);
+  await saveContact(to, { flow_step: "booking_time", flow_data: data });
+
+  const rows = [9, 10, 11, 12, 13, 14, 15].map((hour) => {
+    const hour12 = hour > 12 ? hour - 12 : hour;
+    const time24 = `${String(hour).padStart(2, "0")}:00`;
+    const title = `${String(hour12).padStart(2, "0")}:00 ${hour < 12 ? "AM" : "PM"}`;
+    return { id: `appointment_time_${time24}`, title, description: time24 };
+  });
+
+  await sendList(
+    to,
+    t(language, "🕐 اختر وقت الموعد:", "🕐 Choose the appointment time:"),
+    t(language, "اختيار الوقت", "Choose time"),
+    [
+      {
+        title: t(language, "الأوقات المتاحة", "Available times"),
+        rows,
+      },
+    ]
+  );
 }
 
 async function askCustomAppointmentTime(to: string, data: FlowData) {
@@ -675,15 +688,10 @@ async function askNotes(to: string, data: FlowData) {
     flow_data: data,
   });
 
-  await sendButtons(to, "📝 هل لديك أي ملاحظات إضافية؟", [
-    {
-      id: "notes_none",
-      title: "لا يوجد",
-    },
-    {
-      id: "notes_write",
-      title: "نعم، سأكتبها",
-    },
+  const language = getLanguage(data);
+  await sendButtons(to, t(language, "📝 هل لديك أي ملاحظات إضافية؟", "📝 Do you have any additional notes?"), [
+    { id: "notes_none", title: t(language, "لا يوجد", "No") },
+    { id: "notes_write", title: t(language, "نعم، سأكتبها", "Yes, I will write them") },
   ]);
 }
 
@@ -740,35 +748,6 @@ function calculatePropertyPrice(
   }
 
   return sizePrices[cleaningType as keyof typeof sizePrices] ?? null;
-}
-
-async function showBookingDetailsOptions(to: string, data: FlowData) {
-  const language = getLanguage(data);
-  const rows = [
-    ["1", "Under 70 m²", "Regular Cleaning"],
-    ["2", "Under 70 m²", "Deep Cleaning"],
-    ["3", "Under 70 m²", "Post-Construction Cleaning"],
-    ["4", "70–100 m²", "Regular Cleaning"],
-    ["5", "70–100 m²", "Deep Cleaning"],
-    ["6", "70–100 m²", "Post-Construction Cleaning"],
-    ["7", "100–150 m²", "Regular Cleaning"],
-    ["8", "100–150 m²", "Deep Cleaning"],
-    ["9", "100–150 m²", "Post-Construction Cleaning"],
-    ["10", "150–200 m²", "Regular Cleaning"],
-    ["11", "150–200 m²", "Deep Cleaning"],
-    ["12", "150–200 m²", "Post-Construction Cleaning"],
-    ["13", "200+ m²", "Regular Cleaning"],
-    ["14", "200+ m²", "Deep Cleaning"],
-    ["15", "200+ m²", "Post-Construction Cleaning"],
-  ];
-  await saveContact(to, {
-    flow_step: data.existingBooking ? "existing_booking_details_combo" : "new_booking_details_combo",
-    flow_data: data,
-  });
-  const arSize: Record<string,string> = {"Under 70 m²":"أقل من 70 م²","70–100 m²":"70–100 م²","100–150 m²":"100–150 م²","150–200 m²":"150–200 م²","200+ m²":"أكثر من 200 م²"};
-  const arClean: Record<string,string> = {"Regular Cleaning":"تنظيف عادي","Deep Cleaning":"تنظيف عميق","Post-Construction Cleaning":"بعد الإنشاء"};
-  const lines = rows.map(([n,size,clean]) => `${n}. ${language === "en" ? size : arSize[size]} — ${language === "en" ? clean : arClean[clean]}`).join("\n");
-  await sendText(to, t(language, `📐🧹 اختر المساحة ونوع التنظيف معًا:\n\n${lines}\n\nاكتب رقم الخيار فقط.`, `📐🧹 Choose property size + cleaning type together:\n\n${lines}\n\nReply with the option number only.`));
 }
 
 async function showPropertyTypeOptions(to: string, data: FlowData) {
@@ -910,11 +889,14 @@ async function createBookingFromFlow(to: string, data: FlowData) {
     },
   });
 
+  const language = getLanguage(data);
   await sendText(
     to,
-    "🎉 تم تأكيد طلبك بنجاح!\n\n" +
-      "تم تسجيل الحجز لدينا، وسيظهر الآن ضمن نظام الحجوزات.\n\n" +
-      "شكرًا لاختيارك A to Z Cleaning Services 🌿✨"
+    t(
+      language,
+      "🎉 تم تأكيد طلبك بنجاح!\n\nتم تسجيل الحجز لدينا، وسيظهر الآن ضمن نظام الحجوزات.\n\nشكرًا لاختيارك A to Z Cleaning Services 🌿✨",
+      "🎉 Your booking has been confirmed!\n\nYour booking has been registered successfully.\n\nThank you for choosing A to Z Cleaning Services 🌿✨"
+    )
   );
 }
 
@@ -1043,18 +1025,18 @@ async function handleButton(
     return;
   }
   if (
-  buttonId === "service_malls" ||
-  buttonId === "service_commercial"
-) {
-  await showPropertyTypeOptions(to, {
-    ...data,
-    service:
-      buttonId === "service_malls"
-        ? "Mall Services"
-        : "Corporate Cleaning",
-  });
-  return;
-}
+    buttonId === "service_malls" ||
+    buttonId === "service_commercial"
+  ) {
+    await showPropertyTypeOptions(to, {
+      ...data,
+      service:
+        buttonId === "service_malls"
+          ? "Mall Services"
+          : "Corporate Cleaning",
+    });
+    return;
+  }
 
   if (buttonId === "service_apartment") {
     await showPropertyTypeOptions(to, {
@@ -1065,24 +1047,30 @@ async function handleButton(
   }
 
   if (buttonId === "area_madinaty" || buttonId === "area_shorouk") {
-  const area =
-    buttonId === "area_madinaty"
-      ? "Madinaty"
-      : "El Shorouk";
+    const area =
+      buttonId === "area_madinaty"
+        ? "Madinaty"
+        : "El Shorouk";
 
-  const nextData = {
-    ...data,
-    area,
-  };
+    const nextData = {
+      ...data,
+      area,
+    };
 
-  if (contact.flow_step === "existing_booking_area") {
-    await showPropertyTypeOptions(to, nextData);
+    if (contact.flow_step === "existing_booking_area") {
+      await showPropertyTypeOptions(to, nextData);
+      return;
+    }
+
+    await showPropertySizeOptions(to, nextData);
     return;
   }
 
-  await showPropertySizeOptions(to, nextData);
-  return;
-}
+  if (buttonId === "price_continue") {
+    await askAppointment(to, data);
+    return;
+  }
+
   if (buttonId === "notes_none") {
     await showSummary(to, {
       ...data,
@@ -1140,6 +1128,27 @@ async function handleListReply(
   const data: FlowData = contact.flow_data || {};
   const language = getLanguage(data);
   const step = contact.flow_step;
+
+  if (step === "new_booking_service" || step === "existing_booking_service") {
+    const serviceMap: Record<string, string> = {
+      service_apartment: "Residential Cleaning",
+      service_malls: "Mall Services",
+      service_commercial: "Corporate Cleaning",
+    };
+
+    const service = serviceMap[replyId];
+    if (!service) {
+      await sendText(to, t(language, "يرجى اختيار الخدمة من القائمة.", "Please choose a service from the list."));
+      return;
+    }
+
+    await showPropertyTypeOptions(to, {
+      ...data,
+      service,
+    });
+    return;
+  }
+
   if (step === "existing_booking_select") {
     const selectedBookingId = replyId;
 
@@ -1217,35 +1226,7 @@ async function handleListReply(
       await sendText(to, t(language, "🏬 هذه الخدمة يتم تنسيقها مباشرة مع فريق العمل.\n\n📞 00201214290073", "🏬 This service is coordinated directly with our team.\n\n📞 00201214290073"));
       return;
     }
-    await showBookingDetailsOptions(to, { ...data, ...selected });
-    return;
-  }
-
-  if (step === "new_booking_details_combo" || step === "existing_booking_details_combo") {
-    const reply = String(replyId ?? "").trim();
-    const valid = /^(?:[1-9]|1[0-5])$/.test(reply);
-    if (!valid) {
-      await sendText(to, t(language, "يرجى إرسال رقم خيار صحيح من 1 إلى 15.", "Please send a valid option number from 1 to 15."));
-      return;
-    }
-    const comboMap: Record<string, { propertySize: string; cleaningType: string }> = {
-      "1": { propertySize: "Under 70 m²", cleaningType: "Regular Cleaning" }, "2": { propertySize: "Under 70 m²", cleaningType: "Deep Cleaning" }, "3": { propertySize: "Under 70 m²", cleaningType: "Post-Construction Cleaning" },
-      "4": { propertySize: "70–100 m²", cleaningType: "Regular Cleaning" }, "5": { propertySize: "70–100 m²", cleaningType: "Deep Cleaning" }, "6": { propertySize: "70–100 m²", cleaningType: "Post-Construction Cleaning" },
-      "7": { propertySize: "100–150 m²", cleaningType: "Regular Cleaning" }, "8": { propertySize: "100–150 m²", cleaningType: "Deep Cleaning" }, "9": { propertySize: "100–150 m²", cleaningType: "Post-Construction Cleaning" },
-      "10": { propertySize: "150–200 m²", cleaningType: "Regular Cleaning" }, "11": { propertySize: "150–200 m²", cleaningType: "Deep Cleaning" }, "12": { propertySize: "150–200 m²", cleaningType: "Post-Construction Cleaning" },
-      "13": { propertySize: "200+ m²", cleaningType: "Regular Cleaning" }, "14": { propertySize: "200+ m²", cleaningType: "Deep Cleaning" }, "15": { propertySize: "200+ m²", cleaningType: "Post-Construction Cleaning" },
-    };
-    const selected = comboMap[reply];
-    const estimatedPrice = calculatePropertyPrice(data.propertyType, selected.propertySize, selected.cleaningType);
-    const nextData = { ...data, ...selected, estimatedPrice };
-    await saveContact(to, { flow_step: estimatedPrice == null ? "team_contact" : "price_review", flow_data: nextData });
-    if (estimatedPrice == null) {
-      await sendText(to, t(language, "📐 للمساحات التي تتجاوز 200 م²، السعر لا يظهر تلقائيًا.\n\nسيتواصل معك فريق العمل لتحديد السعر المناسب.\n\n📞 00201214290073", "📐 For properties over 200 m², the price is not calculated automatically.\n\nOur team will contact you to confirm the price.\n\n📞 00201214290073"));
-      return;
-    }
-    await sendButtons(to, t(language, `💰 السعر التقديري: ${formatPriceLang(estimatedPrice, language)}\n\nتابع لاختيار الموعد.`, `💰 Estimated price: ${formatPriceLang(estimatedPrice, language)}\n\nContinue to choose your appointment.`), [
-      { id: "price_continue", title: t(language, "✅ متابعة", "✅ Continue") }, { id: "cancel_booking", title: t(language, "❌ إلغاء", "❌ Cancel") },
-    ]);
+    await showPropertySizeOptions(to, { ...data, ...selected });
     return;
   }
 
@@ -1359,19 +1340,35 @@ async function handleListReply(
     return;
   }
 
-  if (step === "booking_appointment") {
+  if (step === "booking_date") {
     if (replyId === "appointment_other") {
       await saveContact(to, { flow_step: "booking_custom_date", flow_data: data });
       await sendText(to, t(language, "📅 اكتب التاريخ مثل: 18/09/2026", "📅 Enter the date like: 18/09/2026"));
       return;
     }
-    const match = replyId.match(/^appointment_(\d{4}-\d{2}-\d{2})_(\d{2})$/);
-    if (!match) { await sendText(to, t(language, "يرجى اختيار موعد من القائمة.", "Please choose an appointment from the list.")); return; }
-    const [, date, hourText] = match;
-    const hour = Number(hourText);
+
+    if (!replyId.startsWith("appointment_date_")) {
+      await sendText(to, t(language, "يرجى اختيار التاريخ من القائمة.", "Please choose a date from the list."));
+      return;
+    }
+
+    const date = replyId.replace("appointment_date_", "");
+    await askAppointmentTime(to, { ...data, date });
+    return;
+  }
+
+  if (step === "booking_time") {
+    if (!replyId.startsWith("appointment_time_")) {
+      await sendText(to, t(language, "يرجى اختيار الوقت من القائمة.", "Please choose a time from the list."));
+      return;
+    }
+
+    const time24 = replyId.replace("appointment_time_", "");
+    const hour = Number(time24.split(":")[0]);
     const hour12 = hour > 12 ? hour - 12 : hour;
-    const nextData = { ...data, date, time: `${String(hour12).padStart(2,"0")}:00 ${hour < 12 ? "AM" : "PM"}` };
-    if (data.existingBooking) await askAddress(to, nextData); else await askArea(to, "new_booking_area", nextData);
+    const time = `${String(hour12).padStart(2, "0")}:00 ${hour < 12 ? "AM" : "PM"}`;
+
+    await askAddress(to, { ...data, time });
     return;
   }
 
@@ -1381,7 +1378,7 @@ async function handleListReply(
     const hour = Number(time24.split(":")[0]);
     const hour12 = hour > 12 ? hour - 12 : hour;
     const nextData = { ...data, time: `${String(hour12).padStart(2,"0")}:00 ${hour < 12 ? "AM" : "PM"}` };
-    if (data.existingBooking) await askAddress(to, nextData); else await askArea(to, "new_booking_area", nextData);
+    await askAddress(to, nextData);
     return;
   }
 
@@ -1399,52 +1396,6 @@ async function handleText(
   const step = contact.flow_step;
   const data: FlowData = contact.flow_data || {};
   const language = getLanguage(data);
-
-  if (step === "new_booking_details_combo" || step === "existing_booking_details_combo") {
-    const reply = text.trim();
-    const comboMap: Record<string, { propertySize: string; cleaningType: string }> = {
-      "1": { propertySize: "Under 70 m²", cleaningType: "Regular Cleaning" },
-      "2": { propertySize: "Under 70 m²", cleaningType: "Deep Cleaning" },
-      "3": { propertySize: "Under 70 m²", cleaningType: "Post-Construction Cleaning" },
-      "4": { propertySize: "70–100 m²", cleaningType: "Regular Cleaning" },
-      "5": { propertySize: "70–100 m²", cleaningType: "Deep Cleaning" },
-      "6": { propertySize: "70–100 m²", cleaningType: "Post-Construction Cleaning" },
-      "7": { propertySize: "100–150 m²", cleaningType: "Regular Cleaning" },
-      "8": { propertySize: "100–150 m²", cleaningType: "Deep Cleaning" },
-      "9": { propertySize: "100–150 m²", cleaningType: "Post-Construction Cleaning" },
-      "10": { propertySize: "150–200 m²", cleaningType: "Regular Cleaning" },
-      "11": { propertySize: "150–200 m²", cleaningType: "Deep Cleaning" },
-      "12": { propertySize: "150–200 m²", cleaningType: "Post-Construction Cleaning" },
-      "13": { propertySize: "200+ m²", cleaningType: "Regular Cleaning" },
-      "14": { propertySize: "200+ m²", cleaningType: "Deep Cleaning" },
-      "15": { propertySize: "200+ m²", cleaningType: "Post-Construction Cleaning" },
-    };
-    const selected = comboMap[reply];
-    if (!selected) {
-      await sendText(to, t(language, "يرجى إرسال رقم خيار صحيح من 1 إلى 15.", "Please send a valid option number from 1 to 15."));
-      return;
-    }
-    const estimatedPrice = calculatePropertyPrice(data.propertyType, selected.propertySize, selected.cleaningType);
-    const nextData = { ...data, ...selected, estimatedPrice };
-    await saveContact(to, {
-      flow_step: estimatedPrice == null ? "team_contact" : "price_review",
-      flow_data: nextData,
-    });
-    if (estimatedPrice == null) {
-      await sendText(to, t(language, "📐 للمساحات التي تتجاوز 200 م²، السعر لا يظهر تلقائيًا.\n\nسيتواصل معك فريق العمل لتحديد السعر المناسب.\n\n📞 00201214290073", "📐 For properties over 200 m², the price is not calculated automatically.\n\nOur team will contact you to confirm the price.\n\n📞 00201214290073"));
-      return;
-    }
-    await sendButtons(to, t(language, `💰 السعر التقديري: ${formatPriceLang(estimatedPrice, language)}\n\nتابع لاختيار الموعد.`, `💰 Estimated price: ${formatPriceLang(estimatedPrice, language)}\n\nContinue to choose your appointment.`), [
-      { id: "price_continue", title: t(language, "✅ متابعة", "✅ Continue") },
-      { id: "cancel_booking", title: t(language, "❌ إلغاء", "❌ Cancel") },
-    ]);
-    return;
-  }
-
-  if (step === "price_review" && /^(متابعة|تابع|continue|proceed)$/i.test(text.trim())) {
-    await askAppointment(to, data);
-    return;
-  }
 
   if (step === "new_booking_name") {
     const name = text.trim();
@@ -1606,8 +1557,10 @@ description: `${serviceDisplayLabel(booking.service || undefined)} - ${areaLabel
     step === "existing_booking_property_type" ||
     step === "existing_booking_property_size" ||
     step === "existing_booking_cleaning_type" ||
-    step === "new_booking_service_property" ||
-    step === "booking_appointment" ||
+    step === "new_booking_service" ||
+    step === "existing_booking_service" ||
+    step === "booking_date" ||
+    step === "booking_time" ||
     step === "booking_custom_date" ||
     step === "booking_custom_time" ||
     step === "new_booking_area" ||
@@ -1652,15 +1605,17 @@ description: `${serviceDisplayLabel(booking.service || undefined)} - ${areaLabel
     step === "no_booking_found" ||
     step === "team_contact"
   ) {
-    await sendButtons(to, "👋 اختر ماذا تريد أن تفعل:", [
-      {
-        id: "new_booking",
-        title: "🆕 حجز جديد",
-      },
-      {
-        id: "already_booked",
-        title: "✅ لدي حجز",
-      },
+    const selectedLanguage = detectLanguage(text);
+    const nextData = { ...data, language: selectedLanguage };
+
+    await saveContact(to, {
+      flow_step: "welcome",
+      flow_data: nextData,
+    });
+
+    await sendButtons(to, t(selectedLanguage, "👋 اختر ماذا تريد أن تفعل:", "👋 What would you like to do?"), [
+      { id: "new_booking", title: t(selectedLanguage, "🆕 حجز جديد", "🆕 New booking") },
+      { id: "already_booked", title: t(selectedLanguage, "✅ لدي حجز", "✅ I have a booking") },
     ]);
     return;
   }
@@ -1783,9 +1738,11 @@ export async function POST(request: NextRequest) {
 
           await sendText(
             from,
-            "🎉 تم تأكيد طلبك بنجاح!\n\n" +
-              "تم تسجيل الحجز لدينا، وسيظهر الآن ضمن نظام الحجوزات.\n\n" +
-              "شكرًا لاختيارك A to Z Cleaning Services 🌿✨"
+            t(
+              detectLanguage(incomingText),
+              "🎉 تم تأكيد طلبك بنجاح!\n\nتم تسجيل الحجز لدينا، وسيظهر الآن ضمن نظام الحجوزات.\n\nشكرًا لاختيارك A to Z Cleaning Services 🌿✨",
+              "🎉 Your booking has been confirmed!\n\nYour booking has been registered successfully.\n\nThank you for choosing A to Z Cleaning Services 🌿✨"
+            )
           );
 
           return NextResponse.json(
@@ -1828,22 +1785,6 @@ export async function POST(request: NextRequest) {
 
     if (!whatsappContact) {
       throw new Error("Unable to load WhatsApp contact");
-    }
-
-    if (messageType === "text") {
-      const incomingText = message.text?.body?.trim() ?? "";
-      const currentData = whatsappContact.flow_data || {};
-      const currentLanguage = getLanguage(currentData);
-      const detectedLanguage = detectLanguage(incomingText, currentLanguage);
-      if (/[A-Za-z\u0600-\u06FF]/.test(incomingText) && detectedLanguage !== currentLanguage) {
-        await saveContact(from, { flow_data: { ...currentData, language: detectedLanguage } });
-        whatsappContact = await getContact(from);
-      }
-    }
-
-    if (!whatsappContact) {
-      console.error("WhatsApp contact not found:", from);
-      return NextResponse.json({ received: true }, { status: 200 });
     }
 
     if (messageType === "interactive") {
@@ -1895,6 +1836,3 @@ export async function POST(request: NextRequest) {
     });
   }
 }
-
-
-
