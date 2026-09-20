@@ -1253,11 +1253,15 @@ async function handleListReply(
         ? "Corporate Cleaning"
         : "Residential Cleaning";
 
-    await showPropertySizeOptions(to, {
-      ...data,
-      propertyType,
-      service: data.service || service,
-    });
+    await askArea(
+      to,
+      data.existingBooking ? "existing_booking_area" : "new_booking_area",
+      {
+        ...data,
+        propertyType,
+        service: data.service || service,
+      }
+    );
 
     return;
   }
@@ -1836,3 +1840,7 @@ export async function POST(request: NextRequest) {
     });
   }
 }
+
+
+
+
