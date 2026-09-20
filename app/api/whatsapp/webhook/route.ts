@@ -1793,7 +1793,11 @@ export async function POST(request: NextRequest) {
     if (!whatsappContact) {
       throw new Error("Unable to load WhatsApp contact");
     }
+const currentFlowData = whatsappContact.flow_data || {};
 
+if (messageId && currentFlowData.lastMessageId === messageId) {
+  return NextResponse.json({ received: true }, { status: 200 });
+}
     if (messageType === "interactive") {
       const buttonReply =
         message.interactive?.button_reply?.id ?? null;
@@ -1826,13 +1830,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (messageType === "text") {
-      const messageText = message.text?.body?.trim() ?? "";
+   if (messageType === "text") {
+  const messageText = message.text?.body?.trim() ?? "";
 
-      if (messageText) {
-        await handleText(from, messageText, whatsappContact);
-      }
-    }
+  if (messageText) {
+    await saveContact(from, {
+      flow_data: {
+        ...(whatsappContact.flow_data || {}),
+        lastMessageId: messageId || undefined,
+      },
+    });
+
+    await handleText(from, messageText, whatsappContact);
+  }
+}
 
     return NextResponse.json({ received: true }, { status: 200 });
   } catch (error) {
