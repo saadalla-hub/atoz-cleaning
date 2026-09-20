@@ -597,7 +597,7 @@ async function askAppointment(to: string, data: FlowData) {
       const hour12 = hour > 12 ? hour - 12 : hour;
       const time = `${String(hour12).padStart(2, "0")}:00 ${hour < 12 ? "AM" : "PM"}`;
       const dateLabel = new Intl.DateTimeFormat(language === "en" ? "en-US" : "ar-EG", { timeZone: "Africa/Cairo", weekday: "short", day: "2-digit", month: "2-digit" }).format(date);
-      rows.push({ id: `appointment_${iso}_${String(hour).padStart(2, "0")}`, title: `${dateLabel} — ${time}`, description: iso });
+      rows.push({ id: `appointment_${iso}_${String(hour).padStart(2, "0")}`, title: `${iso.slice(8,10)}/${iso.slice(5,7)} — ${time}`, description: iso });
     }
   }
   rows.push({ id: "appointment_other", title: t(language, "📅 تاريخ آخر", "📅 Other date"), description: t(language, "أدخل التاريخ لاحقًا", "Enter another date") });
@@ -1869,4 +1869,6 @@ export async function POST(request: NextRequest) {
     });
   }
 }
+
+
 
