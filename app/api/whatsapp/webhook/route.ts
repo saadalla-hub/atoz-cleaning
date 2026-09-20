@@ -223,7 +223,27 @@ async function getContact(phone: string): Promise<ContactRow | null> {
 
   return data as ContactRow | null;
 }
+async function isDuplicateWhatsAppMessage(
+  messageId: string | null
+): Promise<boolean> {
+  if (!messageId) return false;
 
+  const { error } = await getSupabase()
+    .from("whatsapp_processed_messages")
+    .insert({
+      message_id: messageId,
+    });
+
+  if (!error) return false;
+
+  if (error.code === "23505") {
+    return true;
+  }
+
+  throw new Error(
+    `WhatsApp message deduplication error: ${error.message}`
+  );
+}
 async function saveContact(
   phone: string,
   updates: {
@@ -1697,7 +1717,9 @@ export async function POST(request: NextRequest) {
     if (!from) {
       return NextResponse.json({ received: true }, { status: 200 });
     }
-
+if (await isDuplicateWhatsAppMessage(messageId)) {
+  return NextResponse.json({ received: true }, { status: 200 });
+}
     console.log(
       "WhatsApp incoming message:",
       JSON.stringify({
