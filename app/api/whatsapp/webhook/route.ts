@@ -684,7 +684,7 @@ async function askAddress(to: string, data: FlowData) {
 
 async function askNotes(to: string, data: FlowData) {
   await saveContact(to, {
-    flow_step: "booking_notes",
+    flow_step: "booking_notes_text",
     flow_data: data,
   });
 
