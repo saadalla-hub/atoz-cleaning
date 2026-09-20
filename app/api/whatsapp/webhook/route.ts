@@ -202,8 +202,8 @@ async function sendWhatsAppWelcome(to: string, language: "ar" | "en") {
   try { await sendWhatsAppMessage(to, { type: "image", image: { link: imageUrl } }); }
   catch (error) { console.error("WhatsApp welcome image error:", error); }
   await sendButtons(to, t(language,
-    "👋 أهلاً وسهلاً بك في A to Z Cleaning Services\n\nجاهزون لخدمتك من A إلى Z.\n\nاختر كيف تحب تتابع معنا 👇",
-    "👋 Welcome to A to Z Cleaning Services\n\nWe are ready to help you from A to Z.\n\nHow would you like to continue? 👇"
+    "👋 أهلاً وسهلاً بك في A to Z Cleaning Services\n\nلأن النظافة مو بس شكل… هي راحة، انتعاش، وإحساس أجمل بالمكان 🌿✨\n\nنحن جاهزون نخدمك من A إلى Z.\n\n💬 للحجز الآن، يمكنك إكمال الحجز مباشرة عبر WhatsApp.\n\n🌐 موقعنا الإلكتروني:\nhttps://www.atozcleaningservice.com\n\n📱 تطبيق A to Z قريباً 🚀\nhttps://www.atozcleaningservice.com/app\n\nاختر كيف تحب تتابع معنا 👇",
+    "👋 Welcome to A to Z Cleaning Services\n\nBecause cleaning is more than just appearance… it’s comfort, freshness, and a better feeling in your space 🌿✨\n\nWe are ready to serve you from A to Z.\n\n💬 To book now, you can complete your booking directly through WhatsApp.\n\n🌐 Our website:\nhttps://www.atozcleaningservice.com\n\n📱 A to Z App coming soon 🚀\nhttps://www.atozcleaningservice.com/app\n\nHow would you like to continue? 👇"
   ), [
     { id: "already_booked", title: t(language, "✅ لدي حجز", "✅ I have a booking") },
     { id: "new_booking", title: t(language, "🆕 حجز جديد", "🆕 New booking") },
